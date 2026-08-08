@@ -18,6 +18,12 @@
       <div class="sun-rays"></div>
       <div class="sun-core"></div>
     </div>
+    <div class="moon">
+      <div class="moon-crater mc1"></div>
+      <div class="moon-crater mc2"></div>
+      <div class="moon-crater mc3"></div>
+    </div>
+    <div id="stars"></div>
 
     <!-- clouds (wrapper moves, inner sways) -->
     <div class="cloud-track ct1"><div class="cloud c-big"></div></div>
@@ -30,6 +36,11 @@
 
     <!-- background planes & birds spawn here -->
     <div id="flyers"></div>
+
+    <!-- day/night tint overlays -->
+    <div class="sky-tint" id="tint-evening"></div>
+    <div class="sky-tint" id="tint-dusk"></div>
+    <div class="sky-tint" id="tint-night"></div>
   </div>
 
   <!-- ======= GROUND + AIRPORT ======= -->
@@ -47,6 +58,12 @@
   </div>
 
   <div id="airport" class="scenery">
+    <div class="airport-fence fence-far"></div>
+    <div class="terminal">
+      <div class="terminal-roof"></div>
+      <div class="terminal-windows"></div>
+      <div class="terminal-door"></div>
+    </div>
     <div class="tower">
       <div class="tower-top"></div>
       <div class="tower-radar"></div>
@@ -54,10 +71,21 @@
       <div class="tower-light"></div>
     </div>
     <div class="hangar"></div>
+    <div class="hangar hangar-2"></div>
     <div class="airport-sign">OPO ✈ <span class="sign-heart">♥</span></div>
+    <div class="dep-sign"><div class="dep-board">DEPARTURES →</div><div class="dep-post"></div></div>
+    <div class="radio-mast">
+      <div class="mast-light"></div>
+    </div>
     <div class="windsock">
       <div class="windsock-pole"></div>
       <div class="windsock-cone"></div>
+    </div>
+    <div class="luggage-cart">
+      <div class="cart-box b1"></div>
+      <div class="cart-box b2"></div>
+      <div class="cart-wheel w1"></div>
+      <div class="cart-wheel w2"></div>
     </div>
     <div class="runway">
       <div class="runway-threshold th-left"></div>
@@ -120,7 +148,7 @@
   <!-- ======= CARDS ======= -->
   <main id="cards" class="ui">
     <div class="card" id="card-earn" data-modal="modal-earn">
-      <div class="card-icon"><span class="coin-icon big"></span></div>
+      <div class="card-icon"><span class="coin-icon big"></span><span class="earn-heart">💗</span></div>
       <h2 class="card-title">Earn</h2>
       <p class="card-sub">Sweet words pay off…</p>
     </div>
@@ -142,8 +170,8 @@
     <!-- Earn -->
     <div class="modal" id="modal-earn">
       <button class="modal-close" aria-label="Close">✕</button>
-      <h2 class="modal-title"><span class="coin-icon"></span> Earn</h2>
-      <p class="modal-desc">Type reasons why you love me to earn coins!<br><span class="hint">Every sweet word counts once… choose them well 😊</span></p>
+      <h2 class="modal-title"><span class="coin-icon"></span><span class="earn-heart">💗</span> Earn</h2>
+      <p class="modal-desc"><span id="earn-desc-text">Type reasons why you love me to earn coins!</span><br><span class="hint">Every sweet word counts once… choose them well 😊</span></p>
       <form id="earn-form" autocomplete="off">
         <div class="input-wrap">
           <input type="text" id="earn-input" maxlength="200">
@@ -195,7 +223,7 @@
           </div>
         </div>
         <div class="ticket-details">
-          <div class="td"><span class="td-label">Passenger</span><span class="td-value">LANA ♥</span></div>
+          <div class="td"><span class="td-label">Passenger</span><span class="td-value">WILSON ♥</span></div>
           <div class="td"><span class="td-label">Flight</span><span class="td-value">OU 429</span></div>
           <div class="td"><span class="td-label">Seat</span><span class="td-value">28F</span></div>
           <div class="td"><span class="td-label">Gate</span><span class="td-value">14</span></div>

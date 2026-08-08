@@ -155,17 +155,17 @@ const SHOP_ITEMS = [
     id: "calling",
     icon: "📞",
     title: "Start calling",
-    desc: "You have been texting for a while! Time for an upgrade to voice! +1€/s",
+    desc: "You have been texting for a while! Time for an upgrade to voice! +2€/s",
     cost: { coins: 15 },
-    incomeMoney: 1,
+    incomeMoney: 2,
   },
   {
     id: "playing",
     icon: "🎮",
     title: "Start playing",
-    desc: "It's a thing! You are close now, play some games together! +1€/s",
+    desc: "It's a thing! You are close now, play some games together! +3€/s",
     cost: { coins: 20 },
-    incomeMoney: 1,
+    incomeMoney: 3,
   },
   {
     id: "dating",
@@ -179,7 +179,7 @@ const SHOP_ITEMS = [
     icon: "📹",
     title: "Start videocalling during bedtime",
     desc: "You are officially one, the only thing in the way now is the distance. +1❤️/s",
-    cost: { love: 20 },   // requirement only — hearts are not taken away
+    cost: { love: 15 },   // requirement only — hearts are not taken away
     loveIsRequirementOnly: true,
     incomeLove: 1,
   },
@@ -235,8 +235,8 @@ const Sound = (() => {
     buy()    { tone(392, 392, 0.12, "triangle", 0.14); tone(494, 494, 0.12, "triangle", 0.14, 0.09); tone(587, 587, 0.2, "triangle", 0.14, 0.18); },
     error()  { tone(180, 110, 0.22, "sawtooth", 0.1); },
     takeoff() {
-      tone(90, 380, 2.4, "sawtooth", 0.05);
-      tone(120, 500, 2.4, "triangle", 0.06, 0.15);
+      tone(80, 420, 4.6, "sawtooth", 0.05);
+      tone(110, 560, 4.6, "triangle", 0.06, 0.2);
     },
     tada() {
       [523, 659, 784, 1047].forEach((f, i) => tone(f, f, 0.35, "triangle", 0.12, i * 0.13));
@@ -255,6 +255,12 @@ const Music = (() => {
   let tracks = [];
   let current = 0;
   let started = false;
+  let night = false;
+  // WebAudio graph for the night-time muffle (lowpass filter)
+  let actx = null;
+  let filterNode = null;
+  let gainNode = null;
+  let graphReady = false;
 
   function init() {
     tracks = [document.getElementById("music-a"), document.getElementById("music-b")];
@@ -265,6 +271,35 @@ const Music = (() => {
         playCurrent();
       });
     });
+  }
+
+  function buildGraph() {
+    if (graphReady) return;
+    try {
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      filterNode = actx.createBiquadFilter();
+      filterNode.type = "lowpass";
+      filterNode.frequency.value = 18000;
+      gainNode = actx.createGain();
+      gainNode.gain.value = 1;
+      filterNode.connect(gainNode).connect(actx.destination);
+      tracks.forEach((t) => actx.createMediaElementSource(t).connect(filterNode));
+      graphReady = true;
+      applyNight();
+    } catch (e) {
+      /* no WebAudio — fall back to plain volume changes */
+    }
+  }
+
+  function applyNight() {
+    if (graphReady) {
+      if (actx.state === "suspended") actx.resume();
+      const t0 = actx.currentTime;
+      filterNode.frequency.setTargetAtTime(night ? 640 : 18000, t0, 2.5);
+      gainNode.gain.setTargetAtTime(night ? 0.6 : 1, t0, 2.5);
+    } else {
+      tracks.forEach((t) => { t.volume = MUSIC_VOLUME * (night ? 0.5 : 1); });
+    }
   }
 
   function playCurrent() {
@@ -285,7 +320,13 @@ const Music = (() => {
   function start() {
     if (started) return;
     started = true;
+    buildGraph();
     playCurrent();
+  }
+
+  function setNight(n) {
+    night = n;
+    if (started) applyNight();
   }
 
   function setMuted(m) {
@@ -301,7 +342,7 @@ const Music = (() => {
     }
   }
 
-  return { init, start, setMuted };
+  return { init, start, setMuted, setNight };
 })();
 
 Music.init();
@@ -363,9 +404,25 @@ function renderStats(animate = {}) {
   el.coinsValue.textContent = state.coins;
   el.loveValue.textContent = state.love;
   el.statLove.classList.toggle("locked", state.love < 1);
+  // clouds blush pink as love grows
+  document.documentElement.style.setProperty(
+    "--cloud-pink",
+    `rgba(255, 107, 157, ${((state.love / 100) * 0.7).toFixed(3)})`
+  );
+  updateLoveUi();
   if (animate.money) bump(el.statMoney);
   if (animate.coins) bump(el.statCoins);
   if (animate.love) bump(el.statLove);
+}
+
+function updateLoveUi() {
+  document.body.classList.toggle("love-on", state.loveUnlocked);
+  const desc = document.getElementById("earn-desc-text");
+  if (desc) {
+    desc.textContent = state.loveUnlocked
+      ? "Type reasons why you love me to earn coins and hearts!"
+      : "Type reasons why you love me to earn coins!";
+  }
 }
 
 function addMoney(n) {
@@ -690,8 +747,27 @@ function isUnlocked(item) {
   return idx === 0 || state.purchased.includes(SHOP_ITEMS[idx - 1].id);
 }
 
+const CONVERT_COST = 100; // € per ❤️
+
 function renderShop() {
   el.shopScroll.innerHTML = "";
+
+  if (state.loveUnlocked) {
+    const conv = document.createElement("div");
+    conv.className = "shop-converter";
+    const full = state.love >= 100;
+    conv.innerHTML = `
+      <div class="converter-info">
+        <span class="converter-title">💱 Love converter</span>
+        <span class="converter-desc">Turn your savings into feelings — ${CONVERT_COST}€ per ❤️</span>
+      </div>
+      <button class="btn converter-btn" id="converter-btn" ${state.money < CONVERT_COST || full ? "disabled" : ""}>
+        ${full ? "❤️ is full!" : `${CONVERT_COST}€ → 1❤️`}
+      </button>
+    `;
+    el.shopScroll.appendChild(conv);
+  }
+
   for (const item of SHOP_ITEMS) {
     const bought = state.purchased.includes(item.id);
     const unlocked = isUnlocked(item);
@@ -715,6 +791,19 @@ function renderShop() {
 }
 
 el.shopScroll.addEventListener("click", (e) => {
+  const convBtn = e.target.closest("#converter-btn");
+  if (convBtn && !convBtn.disabled) {
+    if (state.money < CONVERT_COST || state.love >= 100) { Sound.error(); return; }
+    state.money -= CONVERT_COST;
+    Sound.heart();
+    addLove(1);
+    renderStats({ money: true });
+    const r = convBtn.getBoundingClientRect();
+    flyToStat("heart", r.left + r.width / 2, r.top);
+    saveState();
+    renderShop();
+    return;
+  }
   const btn = e.target.closest(".shop-item-buy");
   if (!btn || btn.disabled) return;
   buyItem(btn.dataset.id);
@@ -809,37 +898,91 @@ const BIRD_SVG = `
     <path class="bird-wing" d="M 28 22 Q 20 6 34 10 Q 38 16 32 24 Z" fill="#f4a940" stroke="#3b4a6b" stroke-width="2.5"/>
   </svg>`;
 
-function spawnFlyer() {
-  const isPlane = Math.random() < 0.45;
+const GOLD_PLANE_SVG = PLANE_SVG
+  .replace(/#ffffff/g, "#ffe9a8")
+  .replace(/#9bd1ff/g, "#ffd75e")
+  .replace(/#bfe6ff/g, "#fff3c4")
+  .replace(/#ffb8c8/g, "#ffbe3d");
+
+const BANNER_TEXTS = [
+  "I love you!",
+  "Lana ♥",
+  "OPO → ZAG",
+  "You + Me",
+  "Miss you!",
+  "My love ♥",
+  "Forever us",
+];
+
+function spawnFlyer(forceKind) {
+  // kinds: bird | plane | golden | banner
+  let kind = forceKind;
+  if (!kind) {
+    if (Math.random() >= 0.45) kind = "bird";
+    else {
+      const r = Math.random();
+      kind = r < 0.28 ? "golden" : r < 0.5 ? "banner" : "plane";
+    }
+  }
+  const isBird = kind === "bird";
   const goingRight = Math.random() < 0.5;
-  const size = isPlane ? 55 + Math.random() * 60 : 26 + Math.random() * 22;
-  const y = 40 + Math.random() * (window.innerHeight * 0.55);
+  const size = isBird ? 26 + Math.random() * 22 : 55 + Math.random() * 60;
+  // golden planes stay high so they aren't hidden behind the cards
+  const y = kind === "golden"
+    ? 40 + Math.random() * (window.innerHeight * 0.22)
+    : 40 + Math.random() * (window.innerHeight * 0.55);
   const tilt = (Math.random() * 16 - 8) * (goingRight ? 1 : -1); // up = taking off, down = landing
-  const dur = (isPlane ? 11000 : 16000) + Math.random() * 9000;
+  const dur = (isBird ? 16000 : 11000) + Math.random() * 9000;
 
   const f = document.createElement("div");
-  f.className = "flyer";
-  f.innerHTML = isPlane ? PLANE_SVG : BIRD_SVG;
-  f.style.width = size + "px";
+  f.className = "flyer" + (kind === "golden" ? " golden" : "");
+  const svgHtml = isBird ? BIRD_SVG : kind === "golden" ? GOLD_PLANE_SVG : PLANE_SVG;
+
+  if (kind === "banner") {
+    const text = BANNER_TEXTS[Math.floor(Math.random() * BANNER_TEXTS.length)];
+    const banner = `<div class="flyer-banner" style="font-size:${Math.round(size * 0.17)}px">${text}</div>`;
+    const rope = `<div class="flyer-rope"></div>`;
+    // the banner trails behind the plane
+    f.innerHTML = goingRight ? banner + rope + svgHtml : svgHtml + rope + banner;
+  } else {
+    f.innerHTML = svgHtml;
+  }
+
   f.style.top = "0px";
   f.style.left = "0px";
-  f.querySelector("svg").style.width = "100%";
+  const svg = f.querySelector("svg");
+  svg.style.width = size + "px";
+  if (!goingRight) svg.style.transform = "scaleX(-1)"; // flip the plane only, not the banner text
   el.flyers.appendChild(f);
 
-  const startX = goingRight ? -size - 40 : window.innerWidth + 40;
-  const endX = goingRight ? window.innerWidth + 40 : -size - 40;
-  const flip = goingRight ? 1 : -1;
-  const endY = y - Math.tan((tilt * Math.PI) / 180) * (endX - startX) * 0.35 * flip;
+  if (kind === "golden") {
+    f.addEventListener("click", (e) => {
+      if (f.classList.contains("collected")) return;
+      f.classList.add("collected");
+      Sound.coin();
+      addCoins(1);
+      flyToStat("coin", e.clientX, e.clientY);
+      saveState();
+    });
+  }
+
+  const startX = goingRight ? -size - 260 : window.innerWidth + 40;
+  const endX = goingRight ? window.innerWidth + 40 : -size - 260;
+  const dir = goingRight ? 1 : -1;
+  const endY = y - Math.tan((tilt * Math.PI) / 180) * (endX - startX) * 0.35 * dir;
 
   const anim = f.animate(
     [
-      { transform: `translate(${startX}px, ${y}px) scaleX(${flip}) rotate(${-tilt}deg)` },
-      { transform: `translate(${endX}px, ${endY}px) scaleX(${flip}) rotate(${-tilt}deg)` },
+      { transform: `translate(${startX}px, ${y}px) rotate(${-tilt * dir}deg)` },
+      { transform: `translate(${endX}px, ${endY}px) rotate(${-tilt * dir}deg)` },
     ],
     { duration: dur, easing: "linear" }
   );
   anim.onfinish = () => f.remove();
+  return f;
 }
+
+window.__spawnFlyer = spawnFlyer; // used by the automated tests
 
 function scheduleFlyers() {
   const next = 8000 + Math.random() * 14000;
@@ -919,15 +1062,19 @@ function startCutscene() {
     Sound.takeoff();
 
     // plane rolls down the runway then lifts off and flies out of the screen
+    // in one continuous accelerating motion (single easing over the whole path)
     el.plane.classList.add("no-idle");
+    const W = window.innerWidth;
+    const H = window.innerHeight;
     const anim = el.plane.animate(
       [
-        { transform: "translate(0px, 0px) rotate(0deg)", easing: "cubic-bezier(0.5, 0, 0.9, 0.4)" },
-        { transform: "translate(190px, -2px) rotate(-2deg)", offset: 0.42, easing: "cubic-bezier(0.4, 0, 0.6, 0.5)" },
-        { transform: "translate(330px, -40px) rotate(-14deg)", offset: 0.62, easing: "cubic-bezier(0.3, 0, 0.5, 1)" },
-        { transform: `translate(${window.innerWidth * 0.75}px, -${window.innerHeight * 0.75}px) rotate(-24deg) scale(1.05)` },
+        { transform: "translate(0px, 0px) rotate(0deg)" },
+        { transform: "translate(130px, 0px) rotate(-1deg)", offset: 0.32 },
+        { transform: "translate(290px, -26px) rotate(-10deg)", offset: 0.54 },
+        { transform: `translate(${Math.max(560, W * 0.5)}px, -${H * 0.36}px) rotate(-19deg)`, offset: 0.77 },
+        { transform: `translate(${W + 400}px, -${H + 350}px) rotate(-24deg)` },
       ],
-      { duration: 4600, fill: "forwards" }
+      { duration: 5400, easing: "cubic-bezier(0.42, 0.05, 0.88, 0.45)", fill: "forwards" }
     );
 
     anim.onfinish = () => {
@@ -951,6 +1098,46 @@ el.btnAgain.addEventListener("click", () => {
   localStorage.removeItem(SAVE_KEY);
   location.reload();
 });
+
+/* ------------------------------------------------------------
+   Day → evening → dusk → night cycle
+   ------------------------------------------------------------ */
+
+const PHASES = [
+  ["day", 70000],
+  ["evening", 20000],
+  ["dusk", 18000],
+  ["night", 55000],
+  ["evening", 12000], // dawn
+];
+
+function setPhase(name) {
+  document.body.classList.remove("phase-day", "phase-evening", "phase-dusk", "phase-night");
+  document.body.classList.add("phase-" + name);
+  Music.setNight(name === "night");
+}
+window.__setPhase = setPhase; // used by the automated tests
+
+function runDayCycle(i = 0) {
+  setPhase(PHASES[i][0]);
+  setTimeout(() => runDayCycle((i + 1) % PHASES.length), PHASES[i][1]);
+}
+
+function buildStars() {
+  const stars = document.getElementById("stars");
+  for (let i = 0; i < 70; i++) {
+    const s = document.createElement("span");
+    s.className = "star";
+    const size = 1.5 + Math.random() * 2.2;
+    s.style.width = size + "px";
+    s.style.height = size + "px";
+    s.style.left = Math.random() * 100 + "%";
+    s.style.top = Math.random() * 100 + "%";
+    s.style.animationDuration = 1 + Math.random() * 2.4 + "s";
+    s.style.animationDelay = -Math.random() * 3 + "s";
+    stars.appendChild(s);
+  }
+}
 
 /* ------------------------------------------------------------
    Wavey bouncy title (split into per-letter spans)
@@ -1041,5 +1228,7 @@ function restore() {
 
 restore();
 waveTitle();
+buildStars();
+runDayCycle();
 scheduleFlyers();
 scheduleRisingHearts();

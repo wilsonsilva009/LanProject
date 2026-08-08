@@ -46,7 +46,79 @@ html, body {
   left: 48px;
   width: 110px;
   height: 110px;
+  pointer-events: none;
+  transition: opacity 7s ease, transform 7s ease;
 }
+body.phase-night .sun,
+body.phase-dusk .sun { opacity: 0; transform: translateY(70px) scale(0.9); }
+
+.moon {
+  position: absolute;
+  top: 84px;
+  right: 200px;
+  width: 84px;
+  height: 84px;
+  background: radial-gradient(circle at 38% 34%, #ffffff, #dfe6f7 65%, #c3cdea);
+  border: 4px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  box-shadow: 0 0 34px rgba(220, 230, 255, 0.55);
+  opacity: 0;
+  transform: translateY(-50px);
+  transition: opacity 7s ease, transform 7s ease;
+  pointer-events: none;
+}
+body.phase-night .moon { opacity: 1; transform: translateY(0); }
+.moon-crater {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(160, 175, 215, 0.4);
+}
+.mc1 { width: 18px; height: 18px; top: 20px; left: 16px; }
+.mc2 { width: 11px; height: 11px; top: 46px; left: 40px; }
+.mc3 { width: 8px; height: 8px; top: 16px; left: 48px; }
+
+#stars {
+  position: absolute;
+  inset: 0 0 30% 0;
+  opacity: 0;
+  transition: opacity 8s ease;
+  pointer-events: none;
+}
+body.phase-night #stars { opacity: 1; }
+body.phase-dusk #stars { opacity: 0.35; }
+.star {
+  position: absolute;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
+  animation: twinkle ease-in-out infinite alternate;
+}
+@keyframes twinkle {
+  from { opacity: 0.25; transform: scale(0.8); }
+  to   { opacity: 1; transform: scale(1.15); }
+}
+
+.sky-tint {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: 0;
+  transition: opacity 8s ease;
+}
+#tint-evening { background: linear-gradient(180deg, rgba(255, 148, 88, 0.30), rgba(255, 206, 148, 0.24)); }
+#tint-dusk    { background: linear-gradient(180deg, rgba(108, 70, 150, 0.44), rgba(205, 112, 145, 0.32)); }
+#tint-night   { background: linear-gradient(180deg, rgba(13, 21, 60, 0.64), rgba(32, 48, 95, 0.52)); }
+body.phase-evening #tint-evening { opacity: 1; }
+body.phase-dusk    #tint-dusk    { opacity: 1; }
+body.phase-night   #tint-night   { opacity: 1; }
+
+/* scenery dims at night */
+#ground, #airport { transition: filter 8s ease; }
+body.phase-evening #ground, body.phase-evening #airport { filter: brightness(0.93) saturate(1.05); }
+body.phase-dusk #ground,    body.phase-dusk #airport    { filter: brightness(0.78) saturate(0.85); }
+body.phase-night #ground,   body.phase-night #airport   { filter: brightness(0.55) saturate(0.7); }
 .sun-core {
   position: absolute;
   inset: 15px;
@@ -70,6 +142,7 @@ html, body {
   position: absolute;
   left: -320px;
   animation: cloud-drift linear infinite;
+  pointer-events: none;
 }
 @keyframes cloud-drift {
   from { transform: translateX(0); }
@@ -80,7 +153,9 @@ html, body {
   background: #ffffff;
   border-radius: 60px;
   opacity: 0.95;
-  filter: drop-shadow(0 8px 12px rgba(90, 140, 190, 0.25));
+  /* --cloud-pink grows with love (set from JS) */
+  filter: drop-shadow(0 8px 12px rgba(90, 140, 190, 0.25))
+          drop-shadow(0 0 18px var(--cloud-pink, rgba(255, 107, 157, 0)));
   animation: cloud-sway ease-in-out infinite alternate;
 }
 @keyframes cloud-sway {
@@ -124,8 +199,47 @@ html, body {
   position: absolute;
   will-change: transform;
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
-.flyer svg { display: block; }
+.flyer svg { display: block; flex-shrink: 0; }
+.flyer.golden { pointer-events: auto; cursor: pointer; }
+.flyer.golden svg {
+  filter: drop-shadow(0 0 9px rgba(255, 200, 60, 0.95)) drop-shadow(0 0 22px rgba(255, 180, 40, 0.5));
+  animation: gold-pulse 1.1s ease-in-out infinite alternate;
+}
+@keyframes gold-pulse {
+  from { filter: drop-shadow(0 0 6px rgba(255, 200, 60, 0.8)) drop-shadow(0 0 14px rgba(255, 180, 40, 0.35)); }
+  to   { filter: drop-shadow(0 0 12px rgba(255, 210, 80, 1)) drop-shadow(0 0 30px rgba(255, 180, 40, 0.65)); }
+}
+.flyer.golden.collected { pointer-events: none; }
+.flyer.golden.collected svg { animation: none; filter: none; }
+.flyer-banner {
+  position: relative;
+  background: #fff;
+  border: 2.5px solid var(--ink);
+  border-radius: 8px;
+  padding: 3px 10px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--pink);
+  box-shadow: 0 3px 8px rgba(59, 74, 107, 0.2);
+  animation: banner-flutter 1.4s ease-in-out infinite alternate;
+}
+@keyframes banner-flutter {
+  from { transform: rotate(-2.5deg) translateY(-1px); }
+  to   { transform: rotate(2.5deg) translateY(2px); }
+}
+.flyer-rope {
+  width: 16px;
+  height: 2.5px;
+  background: var(--ink);
+  border-radius: 2px;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
 .bird-wing { transform-origin: 50% 55%; animation: flap 0.35s ease-in-out infinite alternate; }
 @keyframes flap {
   from { transform: rotate(-18deg); }
@@ -172,12 +286,12 @@ html, body {
 .t1 { left: 51%; }
 .t2 { left: 90%; animation-delay: -2.2s; }
 
-#airport { left: 0; bottom: 0; width: 460px; height: 190px; }
+#airport { left: 0; bottom: 0; width: 620px; height: 200px; }
 .runway {
   position: absolute;
   left: 0;
   bottom: 14px;
-  width: 430px;
+  width: 540px;
   height: 46px;
   background: linear-gradient(180deg, #8a93a6, #6d7789);
   border-radius: 10px;
@@ -187,7 +301,7 @@ html, body {
 .runway-stripes {
   position: absolute;
   top: 50%;
-  left: 74px; right: 40px;
+  left: 78px; right: 44px;
   height: 4px;
   transform: translateY(-50%);
   background: repeating-linear-gradient(90deg, #fff 0 22px, transparent 22px 44px);
@@ -228,7 +342,7 @@ html, body {
 
 .windsock {
   position: absolute;
-  left: 436px;
+  left: 548px;
   bottom: 60px;
   width: 46px;
   height: 60px;
@@ -262,8 +376,8 @@ html, body {
 
 .airport-sign {
   position: absolute;
-  left: 12px;
-  bottom: 158px;
+  left: 100px;
+  bottom: 168px;
   background: #fff;
   border: 3px solid var(--ink);
   border-radius: 10px;
@@ -291,8 +405,8 @@ html, body {
 @keyframes radar-spin { to { transform: rotate(360deg); } }
 .tower {
   position: absolute;
-  left: 30px;
-  bottom: 56px;
+  left: 118px;
+  bottom: 58px;
   width: 54px;
   height: 96px;
 }
@@ -331,8 +445,8 @@ html, body {
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 .hangar {
   position: absolute;
-  left: 104px;
-  bottom: 56px;
+  left: 184px;
+  bottom: 58px;
   width: 84px;
   height: 50px;
   background: linear-gradient(180deg, #ffb8c8, #ff8fa3);
@@ -350,10 +464,162 @@ html, body {
   background: #5a6375;
   border-radius: 20px 20px 0 0;
 }
+.hangar-2 {
+  left: 280px;
+  width: 64px;
+  height: 38px;
+  background: linear-gradient(180deg, #9bd1ff, #6cb4ee);
+}
+.hangar-2::after { width: 30px; height: 22px; }
+
+.terminal {
+  position: absolute;
+  left: 2px;
+  bottom: 58px;
+  width: 104px;
+  height: 56px;
+  background: linear-gradient(180deg, #f3f6fb, #d9e2f0);
+  border: 3px solid var(--ink);
+  border-radius: 10px 10px 0 0;
+}
+.terminal-roof {
+  position: absolute;
+  top: -12px;
+  left: -6px;
+  right: -6px;
+  height: 12px;
+  background: linear-gradient(180deg, #ff8fa3, #ff7591);
+  border: 3px solid var(--ink);
+  border-radius: 8px;
+}
+.terminal-windows {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  height: 20px;
+  background: repeating-linear-gradient(90deg, #9bd1ff 0 14px, transparent 14px 20px);
+  border-radius: 4px;
+}
+.terminal-door {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 22px;
+  background: #5a6375;
+  border-radius: 10px 10px 0 0;
+}
+
+.airport-fence {
+  position: absolute;
+  pointer-events: none;
+  height: 20px;
+  background:
+    linear-gradient(180deg, transparent 4px, #e8edf6 4px 7px, transparent 7px 12px, #e8edf6 12px 15px, transparent 15px),
+    repeating-linear-gradient(90deg, #dfe6f2 0 4px, transparent 4px 30px);
+  opacity: 0.9;
+}
+.fence-far { left: -8px; bottom: 62px; width: 640px; }
+
+.dep-sign {
+  position: absolute;
+  left: 438px;
+  bottom: 62px;
+  width: 110px;
+}
+.dep-board {
+  background: #ffd23f;
+  border: 3px solid var(--ink);
+  border-radius: 8px;
+  padding: 2px 7px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.62rem;
+  color: var(--ink);
+  text-align: center;
+  transform: rotate(2deg);
+}
+.dep-post {
+  width: 5px;
+  height: 18px;
+  margin-left: 50px;
+  background: #5a6375;
+  border-radius: 3px;
+}
+
+.radio-mast {
+  position: absolute;
+  left: 588px;
+  bottom: 62px;
+  width: 6px;
+  height: 86px;
+  background: linear-gradient(180deg, #8a93a6, #5a6375);
+  border-radius: 3px;
+}
+.radio-mast::before {
+  content: "";
+  position: absolute;
+  top: 16px;
+  left: -8px;
+  width: 22px;
+  height: 3px;
+  background: #5a6375;
+  border-radius: 2px;
+}
+.radio-mast::after {
+  content: "";
+  position: absolute;
+  top: 34px;
+  left: -6px;
+  width: 18px;
+  height: 3px;
+  background: #5a6375;
+  border-radius: 2px;
+}
+.mast-light {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 9px;
+  height: 9px;
+  background: #ff5f5f;
+  border-radius: 50%;
+  animation: blink 1.1s ease-in-out infinite;
+}
+
+.luggage-cart {
+  position: absolute;
+  left: 356px;
+  bottom: 60px;
+  width: 46px;
+  height: 26px;
+}
+.cart-box {
+  position: absolute;
+  bottom: 8px;
+  border: 2.5px solid var(--ink);
+  border-radius: 4px;
+}
+.b1 { left: 0; width: 20px; height: 14px; background: #ffd23f; }
+.b2 { left: 22px; width: 16px; height: 11px; background: #9bd1ff; }
+.cart-wheel {
+  position: absolute;
+  bottom: 0;
+  width: 9px;
+  height: 9px;
+  background: #5a6375;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+}
+.w1 { left: 4px; }
+.w2 { left: 28px; }
 
 #plane {
   position: absolute;
-  left: 200px;
+  left: 250px;
   bottom: 54px;
   width: 140px;
   pointer-events: none;
@@ -511,6 +777,24 @@ html, body {
   align-items: center;
   height: 52px;
 }
+.earn-heart {
+  display: inline-block;
+  font-size: 0.85em;
+  transform: scale(0);
+  width: 0;
+  overflow: hidden;
+  vertical-align: middle;
+  transition: transform 0.5s cubic-bezier(0.34, 1.8, 0.64, 1), width 0.5s ease, margin 0.5s ease;
+}
+body.love-on .earn-heart {
+  transform: scale(1);
+  width: 1.2em;
+  margin-left: 4px;
+  animation: heart-beat 1.6s ease-in-out infinite;
+}
+.card-icon .earn-heart { font-size: 36px; }
+body.love-on .card-icon .earn-heart { width: 44px; }
+
 .heart-bounce { animation: heart-beat 1.6s ease-in-out infinite; }
 @keyframes heart-beat {
   0%, 100% { transform: scale(1); }
@@ -739,6 +1023,35 @@ html, body {
   scrollbar-width: thin;
   scrollbar-color: #dfe6f2 transparent;
 }
+.shop-converter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(135deg, #eafbef, #d8f6e3);
+  border: 2.5px solid #bfe9cd;
+  border-radius: 20px;
+  padding: 13px 18px;
+}
+.converter-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.converter-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1rem;
+  color: #237b3c;
+}
+.converter-desc { font-size: 0.8rem; color: #5f8c6d; }
+.converter-btn {
+  white-space: nowrap;
+  font-size: 0.9rem;
+  padding: 10px 18px;
+  background: linear-gradient(180deg, #57c877, #2fae4e);
+}
+
 .shop-item {
   display: grid;
   grid-template-columns: 64px 1fr auto;
