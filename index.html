@@ -44,6 +44,18 @@
   </div>
 
   <!-- ======= GROUND + AIRPORT ======= -->
+  <div id="city" class="scenery">
+    <div class="bldg b1"></div>
+    <div class="bldg b2"></div>
+    <div class="bldg b3"></div>
+    <div class="bldg b4"></div>
+    <div class="bldg b5"></div>
+    <div class="bldg b6"></div>
+    <div class="bldg b7"></div>
+    <div class="bldg b8"></div>
+    <div class="city-antenna"><div class="city-antenna-tip"></div></div>
+  </div>
+
   <div id="ground" class="scenery">
     <div class="hill hill-1"></div>
     <div class="hill hill-2"></div>
@@ -69,6 +81,13 @@
       <div class="tower-radar"></div>
       <div class="tower-pole"></div>
       <div class="tower-light"></div>
+    </div>
+    <div class="atc">
+      <div class="atc-pole"></div>
+      <div class="atc-roof"></div>
+      <div class="atc-cab"></div>
+      <div class="atc-antenna"></div>
+      <div class="atc-beacon"></div>
     </div>
     <div class="hangar"></div>
     <div class="hangar hangar-2"></div>
@@ -112,16 +131,16 @@
         <circle cx="82" cy="35" r="4.4" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
         <circle cx="66" cy="35" r="4.4" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
         <circle cx="50" cy="35" r="4.4" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
+        <!-- landing gear (drawn before the wing so the rear wheel sits behind it) -->
+        <line x1="116" y1="50" x2="116" y2="60" stroke="#3b4a6b" stroke-width="3"/>
+        <circle cx="116" cy="62" r="5" fill="#5a6375" stroke="#3b4a6b" stroke-width="2.5"/>
+        <line x1="58" y1="52" x2="58" y2="60" stroke="#3b4a6b" stroke-width="3"/>
+        <circle cx="58" cy="62" r="5" fill="#5a6375" stroke="#3b4a6b" stroke-width="2.5"/>
         <!-- wing (single, swept back-down) -->
         <path d="M 64 44 L 40 66 Q 58 66 74 60 L 90 46 Z" fill="#9bd1ff" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
         <!-- engine under wing -->
         <ellipse cx="88" cy="53" rx="11" ry="6.5" fill="#ff8fa3" stroke="#3b4a6b" stroke-width="3"/>
         <ellipse cx="79" cy="53" rx="2.6" ry="4.2" fill="#3b4a6b"/>
-        <!-- landing gear -->
-        <line x1="116" y1="50" x2="116" y2="60" stroke="#3b4a6b" stroke-width="3"/>
-        <circle cx="116" cy="62" r="5" fill="#5a6375" stroke="#3b4a6b" stroke-width="2.5"/>
-        <line x1="58" y1="52" x2="58" y2="60" stroke="#3b4a6b" stroke-width="3"/>
-        <circle cx="58" cy="62" r="5" fill="#5a6375" stroke="#3b4a6b" stroke-width="2.5"/>
       </svg>
       <span class="nav-light nl-red"></span>
       <span class="nav-light nl-green"></span>

@@ -271,7 +271,33 @@ const Music = (() => {
         dayIdx = (i + 1) % dayTracks.length;
         fadeIn(dayTracks[dayIdx]);
       });
+      // if a track fails to load, skip to the other one
+      t.addEventListener("error", () => {
+        if (night || state.musicMuted || !started) return;
+        if (dayIdx === i) {
+          dayIdx = (i + 1) % dayTracks.length;
+          fadeIn(dayTracks[dayIdx]);
+        }
+      });
     });
+    armAutoStart();
+    // watchdog: if playback silently stopped (OS pause, throttled timers,
+    // missed events), quietly resume the track that should be playing
+    setInterval(() => {
+      if (!started || state.musicMuted || fadeTimer) return;
+      const t = active();
+      if (t.paused) {
+        t.volume = VOL;
+        const p = t.play();
+        if (p) p.catch(() => {});
+      }
+    }, 5000);
+  }
+
+  function armAutoStart() {
+    const kick = () => start();
+    document.addEventListener("pointerdown", kick, { once: true });
+    document.addEventListener("keydown", kick, { once: true });
   }
 
   function active() { return night ? nightTrack : dayTracks[dayIdx]; }
@@ -282,9 +308,16 @@ const Music = (() => {
     stopFade();
     t.volume = 0;
     const p = t.play();
-    if (p) p.catch(() => {}); // autoplay may be blocked until interaction
+    if (p) {
+      p.catch(() => {
+        // autoplay blocked — try again on the next user gesture
+        started = false;
+        stopFade();
+        armAutoStart();
+      });
+    }
     fadeTimer = setInterval(() => {
-      t.volume = Math.min(VOL, t.volume + VOL / 20);
+      t.volume = Math.min(VOL, t.volume + VOL / 12);
       if (t.volume >= VOL) stopFade();
     }, 100);
   }
@@ -352,7 +385,6 @@ const Music = (() => {
 })();
 
 Music.init();
-document.addEventListener("pointerdown", () => Music.start(), { once: true });
 document.getElementById("music-toggle").addEventListener("click", (e) => {
   e.stopPropagation();
   Music.setMuted(!state.musicMuted);
@@ -500,7 +532,8 @@ function openModal(id) {
   Sound.open();
   el.overlay.classList.remove("hidden");
   modal.classList.add("opening");
-  requestAnimationFrame(() => requestAnimationFrame(() => modal.classList.add("open")));
+  void modal.offsetWidth; // flush layout so the open transition has a start state
+  setTimeout(() => modal.classList.add("open"), 20);
   if (id === "modal-shop") renderShop();
   if (id === "modal-letter") startLetterHearts();
   if (id === "modal-earn") setTimeout(() => el.earnInput.focus(), 350);
@@ -549,7 +582,8 @@ function showFeedback(text, cls) {
   line.className = `feedback-line ${cls}`;
   line.textContent = text;
   el.earnFeedback.prepend(line);
-  requestAnimationFrame(() => requestAnimationFrame(() => line.classList.add("show")));
+  void line.offsetWidth;
+  setTimeout(() => line.classList.add("show"), 20);
   while (el.earnFeedback.children.length > 3) {
     el.earnFeedback.lastElementChild.remove();
   }
@@ -1106,12 +1140,11 @@ function startTicketStage() {
   buildQr();
   Sound.tada();
   el.ticketStage.classList.remove("hidden");
-  requestAnimationFrame(() =>
-    requestAnimationFrame(() => {
-      el.ticket.classList.add("landed");
-      setTimeout(() => el.startJourney.classList.remove("hidden"), 1100);
-    })
-  );
+  void el.ticket.offsetWidth;
+  setTimeout(() => {
+    el.ticket.classList.add("landed");
+    setTimeout(() => el.startJourney.classList.remove("hidden"), 1100);
+  }, 30);
 }
 
 el.startJourney.addEventListener("click", () => {
@@ -1288,12 +1321,11 @@ function restore() {
     hideMainUi();
     buildQr();
     el.ticketStage.classList.remove("hidden");
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        el.ticket.classList.add("landed");
-        setTimeout(() => el.startJourney.classList.remove("hidden"), 900);
-      })
-    );
+    void el.ticket.offsetWidth;
+    setTimeout(() => {
+      el.ticket.classList.add("landed");
+      setTimeout(() => el.startJourney.classList.remove("hidden"), 900);
+    }, 30);
   } else if (state.stage === "end") {
     hideMainUi();
     el.ticketStage.classList.add("hidden");

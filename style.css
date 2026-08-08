@@ -127,27 +127,38 @@ body.phase-evening #ground { filter: brightness(0.93) saturate(1.05); }
 body.phase-dusk #ground    { filter: brightness(0.78) saturate(0.85); }
 body.phase-night #ground   { filter: brightness(0.55) saturate(0.7); }
 
-.runway, .terminal, .hangar, .airport-fence, .airport-sign, .dep-sign,
-.windsock, .luggage-cart, .radio-mast, .tower-pole, .tower-radar, #plane svg {
+.runway, .terminal, .hangar, .airport-fence, .airport-sign, .dep-sign, .windsock,
+.luggage-cart, .radio-mast, .tower-pole, .tower-radar, .atc-pole, .atc-roof, #plane svg {
   transition: filter 8s ease;
 }
-body.phase-evening :is(.runway, .terminal, .hangar, .airport-fence, .airport-sign,
-.dep-sign, .windsock, .luggage-cart, .radio-mast, .tower-pole, .tower-radar, #plane svg) {
+body.phase-evening :is(.runway, .terminal, .hangar, .airport-fence, .airport-sign, .dep-sign,
+.windsock, .luggage-cart, .radio-mast, .tower-pole, .tower-radar, .atc-pole, .atc-roof, #plane svg) {
   filter: brightness(0.93) saturate(1.05);
 }
-body.phase-dusk :is(.runway, .terminal, .hangar, .airport-fence, .airport-sign,
-.dep-sign, .windsock, .luggage-cart, .radio-mast, .tower-pole, .tower-radar, #plane svg) {
+body.phase-dusk :is(.runway, .terminal, .hangar, .airport-fence, .airport-sign, .dep-sign,
+.windsock, .luggage-cart, .radio-mast, .tower-pole, .tower-radar, .atc-pole, .atc-roof, #plane svg) {
   filter: brightness(0.78) saturate(0.85);
 }
-body.phase-night :is(.runway, .terminal, .hangar, .airport-fence, .airport-sign,
-.dep-sign, .windsock, .luggage-cart, .radio-mast, .tower-pole, .tower-radar, #plane svg) {
+body.phase-night :is(.runway, .terminal, .hangar, .airport-fence, .airport-sign, .dep-sign,
+.windsock, .luggage-cart, .radio-mast, .tower-pole, .tower-radar, .atc-pole, .atc-roof, #plane svg) {
   filter: brightness(0.55) saturate(0.7);
 }
+
+/* plane windows light up and glow at night (both parked and flying) */
+.flyer svg circle[fill="#bfe6ff"], #plane svg circle[fill="#bfe6ff"] {
+  transition: fill 8s ease, filter 8s ease;
+}
+body.phase-night :is(.flyer svg, #plane svg) circle[fill="#bfe6ff"] {
+  fill: #fff0bd;
+  filter: drop-shadow(0 0 2.5px #ffe9a8) drop-shadow(0 0 6px rgba(255, 220, 140, 0.9));
+}
+/* soften the night dim on plane sprites so the lit windows read through */
+body.phase-night #plane svg { filter: brightness(0.65) saturate(0.8); }
 
 /* at night flyers rise above the tint (clouds are gone) and dim,
    so their navigation lights can shine */
 body.phase-night #flyers { z-index: 2; }
-body.phase-night .flyer svg { filter: brightness(0.5) saturate(0.75); }
+body.phase-night .flyer svg { filter: brightness(0.62) saturate(0.8); }
 body.phase-night .flyer-banner { filter: brightness(0.62); }
 
 /* aircraft navigation lights — red + green strobes, night only */
@@ -356,6 +367,71 @@ body.phase-dusk .cloud-track { opacity: 0.5; }
    ============================================================ */
 
 .scenery { position: fixed; z-index: 1; pointer-events: none; }
+
+/* --- distant city on the horizon (behind the hills) --- */
+#city {
+  left: 50%;
+  bottom: 34px;
+  width: 440px;
+  height: 160px;
+}
+.bldg {
+  position: absolute;
+  bottom: 0;
+  border: 3px solid rgba(59, 74, 107, 0.35);
+  border-bottom: none;
+  border-radius: 7px 7px 0 0;
+  transition: background-color 8s ease;
+}
+/* window grid: one lit square per tile, colored via currentColor so it
+   can transition smoothly between day glass and night lights */
+.bldg::after {
+  content: "";
+  position: absolute;
+  inset: 8px 5px 4px;
+  color: rgba(255, 255, 255, 0.55);
+  background: repeating-conic-gradient(currentColor 0 25%, transparent 0 100%);
+  background-size: 14px 13px;
+  border-radius: 3px;
+  transition: color 8s ease, filter 8s ease;
+}
+.b1 { left: 0;     width: 52px; height: 88px;  background-color: #adbcdd; }
+.b2 { left: 46px;  width: 40px; height: 124px; background-color: #99aacf; }
+.b3 { left: 88px;  width: 58px; height: 74px;  background-color: #b8c6e4; }
+.b4 { left: 150px; width: 46px; height: 140px; background-color: #8fa2c9; }
+.b5 { left: 200px; width: 54px; height: 98px;  background-color: #a5b5d8; }
+.b6 { left: 258px; width: 38px; height: 118px; background-color: #93a6cc; }
+.b7 { left: 300px; width: 60px; height: 82px;  background-color: #b0bfe0; }
+.b8 { left: 364px; width: 44px; height: 106px; background-color: #9cadd2; }
+.city-antenna {
+  position: absolute;
+  left: 170px;
+  bottom: 140px;
+  width: 4px;
+  height: 24px;
+  background: #7c8bad;
+  border-radius: 2px;
+  transition: background-color 8s ease;
+}
+.city-antenna-tip {
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  background: #ff5f5f;
+  border-radius: 50%;
+  animation: blink 1.8s ease-in-out infinite;
+}
+body.phase-night .bldg { background-color: #2b3252; }
+body.phase-night .city-antenna { background-color: #232a45; }
+body.phase-night .bldg::after {
+  color: #ffdf9e;
+  filter: drop-shadow(0 0 2px #ffe4a6) drop-shadow(0 0 6px rgba(255, 214, 130, 0.75));
+}
+body.phase-dusk .bldg { background-color: #5e6a94; }
+body.phase-dusk .bldg::after { color: #ffe9be; }
 
 #ground { left: 0; right: 0; bottom: 0; height: 120px; }
 .hill {
@@ -572,6 +648,87 @@ body.phase-dusk .cloud-track { opacity: 0.5; }
   background: #5a6375;
   border-radius: 20px 20px 0 0;
 }
+/* proper ATC control tower behind the hangars */
+.atc {
+  position: absolute;
+  left: 256px;
+  bottom: 58px;
+  width: 64px;
+  height: 134px;
+}
+.atc-pole {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 94px;
+  background: linear-gradient(180deg, #f3f6fb, #ccd6e6);
+  border: 3px solid var(--ink);
+  clip-path: polygon(12% 0, 88% 0, 100% 100%, 0 100%);
+}
+.atc-cab {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  width: 64px;
+  height: 32px;
+  background: linear-gradient(180deg, #bfe6ff, #6cb4ee);
+  border: 3px solid var(--ink);
+  border-radius: 10px;
+}
+.atc-cab::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 5px;
+  height: 3px;
+  background: rgba(59, 74, 107, 0.35);
+  border-radius: 2px;
+}
+.atc-roof {
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 52px;
+  height: 12px;
+  background: linear-gradient(180deg, #ffb8c8, #ff8fa3);
+  border: 3px solid var(--ink);
+  border-radius: 6px;
+}
+.atc-antenna {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3.5px;
+  height: 16px;
+  background: #5a6375;
+  border-radius: 2px;
+}
+.atc-beacon {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  background: #ff5f5f;
+  border-radius: 50%;
+  animation: blink 1.4s ease-in-out infinite;
+}
+body.phase-night .atc-cab {
+  background: linear-gradient(180deg, #fff3c8, #ffd469);
+  filter: brightness(1.5)
+          drop-shadow(0 0 8px rgba(255, 220, 120, 0.95))
+          drop-shadow(0 0 20px rgba(255, 205, 90, 0.6));
+}
+body.phase-night .atc-beacon, body.phase-night .city-antenna-tip {
+  filter: brightness(1.6) drop-shadow(0 0 6px rgba(255, 90, 90, 0.95)) drop-shadow(0 0 14px rgba(255, 70, 70, 0.6));
+}
+.atc-cab, .atc-beacon, .city-antenna-tip { transition: background 6s ease, filter 6s ease; }
+
 .hangar-2 {
   left: 280px;
   width: 64px;
@@ -900,12 +1057,21 @@ body.phase-dusk .cloud-track { opacity: 0.5; }
   text-align: center;
   cursor: pointer;
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+  animation: card-bob 3.8s ease-in-out infinite alternate;
+}
+.card:nth-child(1) { animation-delay: -0.7s; }
+.card:nth-child(2) { animation-delay: -2s; }
+.card:nth-child(3) { animation-delay: -3.2s; }
+@keyframes card-bob {
+  from { transform: translateY(0) rotate(-0.7deg); }
+  to   { transform: translateY(-7px) rotate(0.7deg); }
 }
 .card:hover {
+  animation: none;
   transform: translateY(-10px) rotate(-1.2deg) scale(1.04);
   box-shadow: 0 18px 40px rgba(59, 74, 107, 0.26);
 }
-.card:active { transform: translateY(-4px) scale(0.99); }
+.card:active { animation: none; transform: translateY(-4px) scale(0.99); }
 .card-icon {
   font-size: 44px;
   line-height: 1;
