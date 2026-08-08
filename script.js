@@ -164,7 +164,7 @@ const SHOP_ITEMS = [
     icon: "🎮",
     title: "Start playing",
     desc: "It's a thing! You are close now, play some games together! +3€/s",
-    cost: { coins: 20 },
+    cost: { coins: 15 },
     incomeMoney: 3,
   },
   {
@@ -172,7 +172,7 @@ const SHOP_ITEMS = [
     icon: "💗",
     title: "Start dating",
     desc: "You are closer than ever, time to take things to the next level! Tip: You can now earn hearts! +10❤️",
-    cost: { coins: 15, money: 500 },
+    cost: { coins: 10, money: 500 },
   },
   {
     id: "videocall",
@@ -275,6 +275,9 @@ const Music = (() => {
 
   function buildGraph() {
     if (graphReady) return;
+    // Media routed through WebAudio is CORS-tainted (silent!) on file:// —
+    // only build the night-filter graph when served over http(s).
+    if (!/^https?:$/.test(location.protocol)) return;
     try {
       actx = new (window.AudioContext || window.webkitAudioContext)();
       filterNode = actx.createBiquadFilter();
@@ -298,7 +301,8 @@ const Music = (() => {
       filterNode.frequency.setTargetAtTime(night ? 640 : 18000, t0, 2.5);
       gainNode.gain.setTargetAtTime(night ? 0.6 : 1, t0, 2.5);
     } else {
-      tracks.forEach((t) => { t.volume = MUSIC_VOLUME * (night ? 0.5 : 1); });
+      // no graph — approximate the night muffle with a volume dip
+      tracks.forEach((t) => { t.volume = MUSIC_VOLUME * (night ? 0.45 : 1); });
     }
   }
 
@@ -747,7 +751,7 @@ function isUnlocked(item) {
   return idx === 0 || state.purchased.includes(SHOP_ITEMS[idx - 1].id);
 }
 
-const CONVERT_COST = 100; // € per ❤️
+const CONVERT_COST = 500; // € per ❤️
 
 function renderShop() {
   el.shopScroll.innerHTML = "";
@@ -924,6 +928,8 @@ function spawnFlyer(forceKind) {
       kind = r < 0.28 ? "golden" : r < 0.5 ? "banner" : "plane";
     }
   }
+  // birds sleep at night — send a plane instead
+  if (kind === "bird" && document.body.classList.contains("phase-night")) kind = "plane";
   const isBird = kind === "bird";
   const goingRight = Math.random() < 0.5;
   const size = isBird ? 26 + Math.random() * 22 : 55 + Math.random() * 60;
@@ -937,15 +943,19 @@ function spawnFlyer(forceKind) {
   const f = document.createElement("div");
   f.className = "flyer" + (kind === "golden" ? " golden" : "");
   const svgHtml = isBird ? BIRD_SVG : kind === "golden" ? GOLD_PLANE_SVG : PLANE_SVG;
+  // planes get red/green navigation strobes (visible at night)
+  const body = isBird
+    ? svgHtml
+    : `<span class="plane-body">${svgHtml}<span class="nav-light nl-red"></span><span class="nav-light nl-green"></span></span>`;
 
   if (kind === "banner") {
     const text = BANNER_TEXTS[Math.floor(Math.random() * BANNER_TEXTS.length)];
     const banner = `<div class="flyer-banner" style="font-size:${Math.round(size * 0.17)}px">${text}</div>`;
     const rope = `<div class="flyer-rope"></div>`;
     // the banner trails behind the plane
-    f.innerHTML = goingRight ? banner + rope + svgHtml : svgHtml + rope + banner;
+    f.innerHTML = goingRight ? banner + rope + body : body + rope + banner;
   } else {
-    f.innerHTML = svgHtml;
+    f.innerHTML = body;
   }
 
   f.style.top = "0px";
@@ -960,8 +970,10 @@ function spawnFlyer(forceKind) {
       if (f.classList.contains("collected")) return;
       f.classList.add("collected");
       Sound.coin();
-      addCoins(1);
+      Sound.coin(1);
+      addCoins(2);
       flyToStat("coin", e.clientX, e.clientY);
+      flyToStat("coin", e.clientX, e.clientY, 130);
       saveState();
     });
   }
@@ -1066,15 +1078,19 @@ function startCutscene() {
     el.plane.classList.add("no-idle");
     const W = window.innerWidth;
     const H = window.innerHeight;
+    // dense keyframes so speed AND rotation ramp gradually — no snappy turns
     const anim = el.plane.animate(
       [
         { transform: "translate(0px, 0px) rotate(0deg)" },
-        { transform: "translate(130px, 0px) rotate(-1deg)", offset: 0.32 },
-        { transform: "translate(290px, -26px) rotate(-10deg)", offset: 0.54 },
-        { transform: `translate(${Math.max(560, W * 0.5)}px, -${H * 0.36}px) rotate(-19deg)`, offset: 0.77 },
-        { transform: `translate(${W + 400}px, -${H + 350}px) rotate(-24deg)` },
+        { transform: "translate(150px, 0px) rotate(0deg)", offset: 0.30 },
+        { transform: "translate(230px, -2px) rotate(-3deg)", offset: 0.45 },
+        { transform: "translate(330px, -16px) rotate(-8deg)", offset: 0.58 },
+        { transform: "translate(460px, -58px) rotate(-13deg)", offset: 0.70 },
+        { transform: "translate(620px, -135px) rotate(-17deg)", offset: 0.80 },
+        { transform: "translate(820px, -255px) rotate(-20deg)", offset: 0.88 },
+        { transform: `translate(${W + 400}px, -${H + 350}px) rotate(-23deg)` },
       ],
-      { duration: 5400, easing: "cubic-bezier(0.42, 0.05, 0.88, 0.45)", fill: "forwards" }
+      { duration: 5600, easing: "cubic-bezier(0.42, 0.05, 0.88, 0.45)", fill: "forwards" }
     );
 
     anim.onfinish = () => {

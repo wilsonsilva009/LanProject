@@ -38,6 +38,8 @@ html, body {
   inset: 0;
   overflow: hidden;
   z-index: 0;
+  /* gradient lives HERE (not on body) so the multiply tints can darken it */
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 100%);
 }
 
 .sun {
@@ -54,6 +56,7 @@ body.phase-dusk .sun { opacity: 0; transform: translateY(70px) scale(0.9); }
 
 .moon {
   position: absolute;
+  z-index: 2; /* above the night tint */
   top: 84px;
   right: 200px;
   width: 84px;
@@ -80,6 +83,7 @@ body.phase-night .moon { opacity: 1; transform: translateY(0); }
 #stars {
   position: absolute;
   inset: 0 0 30% 0;
+  z-index: 2; /* above the night tint so stars actually shine */
   opacity: 0;
   transition: opacity 8s ease;
   pointer-events: none;
@@ -108,8 +112,8 @@ body.phase-dusk #stars { opacity: 0.35; }
   transition: opacity 8s ease;
 }
 #tint-evening { background: linear-gradient(180deg, rgba(255, 148, 88, 0.30), rgba(255, 206, 148, 0.24)); }
-#tint-dusk    { background: linear-gradient(180deg, rgba(108, 70, 150, 0.44), rgba(205, 112, 145, 0.32)); }
-#tint-night   { background: linear-gradient(180deg, rgba(13, 21, 60, 0.64), rgba(32, 48, 95, 0.52)); }
+#tint-dusk    { background: linear-gradient(180deg, rgba(108, 70, 150, 0.5), rgba(205, 112, 145, 0.36)); }
+#tint-night   { background: linear-gradient(180deg, rgba(7, 12, 42, 0.85), rgba(18, 30, 70, 0.72)); }
 body.phase-evening #tint-evening { opacity: 1; }
 body.phase-dusk    #tint-dusk    { opacity: 1; }
 body.phase-night   #tint-night   { opacity: 1; }
@@ -119,6 +123,63 @@ body.phase-night   #tint-night   { opacity: 1; }
 body.phase-evening #ground, body.phase-evening #airport { filter: brightness(0.93) saturate(1.05); }
 body.phase-dusk #ground,    body.phase-dusk #airport    { filter: brightness(0.78) saturate(0.85); }
 body.phase-night #ground,   body.phase-night #airport   { filter: brightness(0.55) saturate(0.7); }
+
+/* at night flyers rise above the tint (clouds are gone) and dim,
+   so their navigation lights can shine */
+body.phase-night #flyers { z-index: 2; }
+body.phase-night .flyer svg { filter: brightness(0.5) saturate(0.75); }
+body.phase-night .flyer-banner { filter: brightness(0.62); }
+
+/* aircraft navigation lights — red + green strobes, night only */
+.plane-body { position: relative; display: block; flex-shrink: 0; }
+.nav-light {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 2.5s ease;
+}
+.nl-red {
+  left: 14%;
+  top: 6%;
+  background: #ff4d4d;
+  box-shadow: 0 0 8px 2px rgba(255, 70, 70, 0.9);
+}
+.nl-green {
+  right: 6%;
+  top: 42%;
+  background: #3dff6e;
+  box-shadow: 0 0 8px 2px rgba(60, 255, 120, 0.9);
+}
+body.phase-night .nav-light { animation: nav-strobe 1.2s step-end infinite; }
+body.phase-night .nl-red   { opacity: 1; }
+body.phase-night .nl-green { opacity: 1; animation-delay: 0.6s; }
+@keyframes nav-strobe {
+  0%   { opacity: 1; }
+  12%  { opacity: 0.15; }
+  100% { opacity: 0.15; }
+}
+
+/* airport lights up at night */
+body.phase-night .runway-lights {
+  background: repeating-linear-gradient(90deg, #fff3b0 0 5px, transparent 5px 42px);
+  box-shadow: 0 0 10px rgba(255, 225, 120, 0.95);
+  opacity: 1;
+  animation: none;
+}
+body.phase-night .terminal-windows {
+  background: repeating-linear-gradient(90deg, #ffd98a 0 14px, rgba(255, 217, 138, 0.15) 14px 20px);
+  box-shadow: 0 0 14px rgba(255, 214, 120, 0.85);
+}
+body.phase-night .tower-top {
+  background: linear-gradient(180deg, #ffe9ad, #ffd469);
+  box-shadow: 0 0 16px rgba(255, 214, 120, 0.8);
+}
+body.phase-night .runway-threshold { opacity: 1; box-shadow: 0 0 8px rgba(255, 245, 200, 0.7); }
+body.phase-night .runway-number { color: #fff; text-shadow: 0 0 8px rgba(255, 245, 200, 0.9); }
+.runway-lights, .terminal-windows, .tower-top, .runway-threshold { transition: background 6s ease, box-shadow 6s ease; }
 .sun-core {
   position: absolute;
   inset: 15px;
@@ -143,7 +204,11 @@ body.phase-night #ground,   body.phase-night #airport   { filter: brightness(0.5
   left: -320px;
   animation: cloud-drift linear infinite;
   pointer-events: none;
+  transition: opacity 8s ease;
 }
+/* clouds clear away at night */
+body.phase-night .cloud-track { opacity: 0; }
+body.phase-dusk .cloud-track { opacity: 0.5; }
 @keyframes cloud-drift {
   from { transform: translateX(0); }
   to   { transform: translateX(calc(100vw + 640px)); }
@@ -619,7 +684,7 @@ body.phase-night #ground,   body.phase-night #airport   { filter: brightness(0.5
 
 #plane {
   position: absolute;
-  left: 250px;
+  left: 60px;
   bottom: 54px;
   width: 140px;
   pointer-events: none;
