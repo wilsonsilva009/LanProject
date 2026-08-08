@@ -123,20 +123,22 @@ const BAD_WORDS = new Set([
 
 const LETTER_TEXT = `My dearest Lana,
 
-If you are reading this, it means you found your way to the softest corner of this little sky I built for you. I wanted to make you something that no store could sell and no screen could copy — a small world where every cloud drifts just for you.
+If you are reading this, it means you found your way to the softest corner of this little safe haven I built for you. I wanted to make you something that no money I ever gave you could buy, a small world where every cloud drifts just for you that you can come back to anytime you need to a refresher on how much I really love you, or something for us to look at in the future and say "Awww look what we did before we met!". I've been wanting to write something like this for a really long time and I think now is the time, I just hope I can fit it all into one big letter ❤️.
 
-Do you remember how it all started? A message. Just words on a screen, and yet somehow they carried everything: the laughter, the late nights, the "one more minute" that always turned into hours. Distance drew a long line between Porto and Zagreb, but we kept folding that line smaller and smaller with every call, every game, every sleepy goodnight.
+Lana, you made your way into my life in the most unexpected way possible, from a sweet little precious making forms about me when we just met years ago to suddenly getting so far as we did now. I could have never expected that just a few months ago we would go from just online friends that didn't talk for years to this, and I couldn't been happier. You are so far away but still closer and more part of my life than anything else, I wake up and I think about you, I go to sleep and I see your face and think about you, I am at internship or gym and I'm thinking about you. My life is no longer just mine and I'm glad its like that, because I'm terrified of what it is like without you. I want you, just you you you every day every minute, forever.
 
-I love the way you laugh at your own jokes before you finish telling them. I love how you pretend not to care and then care more than anyone I have ever met. I love the little pause you take before saying something important, like the words need a running start. I love that being with you feels less like something new and more like something remembered — as if some part of me always knew you were out there.
+I love the moments we share, how conversations can go from the most serious talk ever about future and life to the goofiest most unhinged things in 5 seconds, there's no line in the middle 😭. I honestly have no idea how I made it to where I am today without you, imagining life without you now is just scary and I can't think of my days without you. I want you to know that I am so, so proud of you for everything you do. You don't have to work so hard to impress me or prove you are worth it, or feel like its a thing you must do to make me happy every day or I will stop loving you, you already do by just being you and nothing else, especially everything you go through for ME every DAY. You making it past day after day is already making me proud, though everything you have to go through with your parents, the shouting, the sh, etc. Every. Single. Day.. Just for a chance to meet me, means more than anything else in the world to me. YOU mean more than anything else in the world to me and deserve the world, I just can't wait to show you the world I can give you ❤️. I know the distance is plenty, but we are never far from each other while we move around the sun in this floating big rock in space.
 
-They say long distance is hard, and they are right. But they never mention the secret: that missing someone this much is only possible when you have someone this worth missing. Every kilometre between us is just proof of how far love can stretch without breaking.
+I love you so, so so so so so damn much, It's amazing how attached I got to you but I don't care, I wanna hold onto you and just never let go and melt right there. I want it to be us forever, and nothing else ever again. I want to be your safe place forever just as much as you are mine, and have the superpower that you have of turning 9999 problems into 0 in a few seconds, it really is amazing. I know you sometimes think you are a hassle that I have to deal with, that you are annoying, or aren't doing enough for me just because I give you things or I am in a bad mood, but that is not true at all.
 
-So here is my promise, written in this cartoon sky: I will keep choosing you. On the slow days and the loud days, through time zones and bad connections, through every "goodnight" that should have been a "stay". One day soon there will be no screen between us — just an airport, a runway, and me, running out of patience in the best possible way.
+I hope you like this first project (of many more to come) and gives a slight bit of comfort when you need it most.
+
+So here is my promise, written in this cartoon sky: I will keep choosing you. On the good days and the bad days, through time zones and bad moment, through every "goodnight" that should have been a "stay". One day soon there will be no screen between us — just an airport, a runway, and me, running out of patience in the best possible way.
 
 Until then, keep this little world close. The clouds will keep moving, the plane will keep waiting, and so will I.
 
-Forever yours,
-with all my heart ♥`;
+Forever and ever,
+with all my heart ❤️`;
 
 /* ------------------------------------------------------------
    Shop items
