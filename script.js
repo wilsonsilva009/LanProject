@@ -251,86 +251,87 @@ document.addEventListener("pointerdown", () => Sound.unlock(), { once: true });
    ------------------------------------------------------------ */
 
 const Music = (() => {
-  const MUSIC_VOLUME = 0.12;
-  let tracks = [];
-  let current = 0;
+  const VOL = 0.12;
+  const FADE_MS = 3500;
+  let dayTracks = [];
+  let nightTrack = null;
+  let dayIdx = 0;      // 0 = music.mp3, 1 = musicelectro.mp3
   let started = false;
   let night = false;
-  // WebAudio graph for the night-time muffle (lowpass filter)
-  let actx = null;
-  let filterNode = null;
-  let gainNode = null;
-  let graphReady = false;
+  let fadeTimer = null;
 
   function init() {
-    tracks = [document.getElementById("music-a"), document.getElementById("music-b")];
-    tracks.forEach((t, i) => {
-      t.volume = MUSIC_VOLUME;
+    dayTracks = [document.getElementById("music-a"), document.getElementById("music-b")];
+    nightTrack = document.getElementById("music-night");
+    nightTrack.loop = true; // the night mix loops until dawn
+    dayTracks.forEach((t, i) => {
+      t.volume = VOL;
       t.addEventListener("ended", () => {
-        current = (i + 1) % tracks.length;
-        playCurrent();
+        if (night || state.musicMuted) return;
+        dayIdx = (i + 1) % dayTracks.length;
+        fadeIn(dayTracks[dayIdx]);
       });
     });
   }
 
-  function buildGraph() {
-    if (graphReady) return;
-    // Media routed through WebAudio is CORS-tainted (silent!) on file:// —
-    // only build the night-filter graph when served over http(s).
-    if (!/^https?:$/.test(location.protocol)) return;
-    try {
-      actx = new (window.AudioContext || window.webkitAudioContext)();
-      filterNode = actx.createBiquadFilter();
-      filterNode.type = "lowpass";
-      filterNode.frequency.value = 18000;
-      gainNode = actx.createGain();
-      gainNode.gain.value = 1;
-      filterNode.connect(gainNode).connect(actx.destination);
-      tracks.forEach((t) => actx.createMediaElementSource(t).connect(filterNode));
-      graphReady = true;
-      applyNight();
-    } catch (e) {
-      /* no WebAudio — fall back to plain volume changes */
-    }
-  }
+  function active() { return night ? nightTrack : dayTracks[dayIdx]; }
 
-  function applyNight() {
-    if (graphReady) {
-      if (actx.state === "suspended") actx.resume();
-      const t0 = actx.currentTime;
-      filterNode.frequency.setTargetAtTime(night ? 640 : 18000, t0, 2.5);
-      gainNode.gain.setTargetAtTime(night ? 0.6 : 1, t0, 2.5);
-    } else {
-      // no graph — approximate the night muffle with a volume dip
-      tracks.forEach((t) => { t.volume = MUSIC_VOLUME * (night ? 0.45 : 1); });
-    }
-  }
+  function stopFade() { if (fadeTimer) { clearInterval(fadeTimer); fadeTimer = null; } }
 
-  function playCurrent() {
-    if (state.musicMuted) return;
-    const t = tracks[current];
+  function fadeIn(t) {
+    stopFade();
     t.volume = 0;
     const p = t.play();
     if (p) p.catch(() => {}); // autoplay may be blocked until interaction
-    // gentle fade-in
-    let v = 0;
-    const fade = setInterval(() => {
-      v += MUSIC_VOLUME / 20;
-      if (v >= MUSIC_VOLUME) { t.volume = MUSIC_VOLUME; clearInterval(fade); }
-      else t.volume = v;
+    fadeTimer = setInterval(() => {
+      t.volume = Math.min(VOL, t.volume + VOL / 20);
+      if (t.volume >= VOL) stopFade();
+    }, 100);
+  }
+
+  function crossfade(from, to, syncTime) {
+    stopFade();
+    // the night mix matches the electro track, so keep the playback position
+    if (syncTime != null && !isNaN(to.duration) && to.duration > 0) {
+      to.currentTime = syncTime % to.duration;
+    }
+    to.volume = 0;
+    const p = to.play();
+    if (p) p.catch(() => {});
+    const steps = FADE_MS / 100;
+    let i = 0;
+    fadeTimer = setInterval(() => {
+      i++;
+      const k = Math.min(1, i / steps);
+      to.volume = VOL * k;
+      from.volume = VOL * (1 - k);
+      if (k >= 1) {
+        from.pause();
+        stopFade();
+      }
     }, 100);
   }
 
   function start() {
     if (started) return;
     started = true;
-    buildGraph();
-    playCurrent();
+    if (!state.musicMuted) fadeIn(active());
   }
 
   function setNight(n) {
+    if (night === n) return;
     night = n;
-    if (started) applyNight();
+    if (!started || state.musicMuted) return;
+    if (n) {
+      const from = dayTracks[dayIdx];
+      // electro (idx 1) has a matching night version — swap seamlessly in place
+      const sync = dayIdx === 1 ? from.currentTime : 0;
+      crossfade(from, nightTrack, sync);
+    } else {
+      // dawn: return to the electro day mix at the same position
+      dayIdx = 1;
+      crossfade(nightTrack, dayTracks[dayIdx], nightTrack.currentTime);
+    }
   }
 
   function setMuted(m) {
@@ -339,10 +340,11 @@ const Music = (() => {
     const btn = document.getElementById("music-toggle");
     btn.classList.toggle("muted", m);
     btn.textContent = m ? "🔇" : "🔊";
+    stopFade();
     if (m) {
-      tracks.forEach((t) => t.pause());
+      [...dayTracks, nightTrack].forEach((t) => t.pause());
     } else if (started) {
-      playCurrent();
+      fadeIn(active());
     }
   }
 
@@ -586,6 +588,9 @@ setInterval(() => {
 el.earnInput.addEventListener("input", () => {
   earnPlaceholder.classList.toggle("hide", el.earnInput.value !== "");
 });
+
+// drop the red outline once the shake animation is done
+el.earnInput.addEventListener("animationend", () => el.earnInput.classList.remove("shake"));
 
 el.earnForm.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -1005,6 +1010,38 @@ function scheduleFlyers() {
 }
 
 /* ------------------------------------------------------------
+   Plane thought bubble
+   ------------------------------------------------------------ */
+
+const THOUGHTS = [
+  "I'm coming!",
+  "Hang in there!",
+  "Almost there!",
+  "Can't wait!",
+  "Zagreb awaits!",
+  "Soon, my love ♥",
+  "Counting the days…",
+  "Fueled up and ready!",
+];
+let cutsceneRunning = false;
+
+function showThought() {
+  const bubble = document.getElementById("plane-thought");
+  document.getElementById("thought-text").textContent =
+    THOUGHTS[Math.floor(Math.random() * THOUGHTS.length)];
+  bubble.classList.add("show");
+  setTimeout(() => bubble.classList.remove("show"), 3800);
+}
+window.__showThought = showThought; // used by the automated tests
+
+function scheduleThoughts() {
+  setTimeout(() => {
+    if (state.stage !== "end" && !cutsceneRunning) showThought();
+    scheduleThoughts();
+  }, 9000 + Math.random() * 10000);
+}
+
+/* ------------------------------------------------------------
    Ticket stage & final cutscene
    ------------------------------------------------------------ */
 
@@ -1063,6 +1100,8 @@ el.startJourney.addEventListener("click", () => {
 
 function startCutscene() {
   state.stage = "end";
+  cutsceneRunning = true;
+  document.getElementById("plane-thought").classList.remove("show");
   saveState();
 
   // everything UI fades away, only scenery stays
@@ -1248,3 +1287,4 @@ buildStars();
 runDayCycle();
 scheduleFlyers();
 scheduleRisingHearts();
+scheduleThoughts();
