@@ -172,13 +172,13 @@ html, body {
 .t1 { left: 51%; }
 .t2 { left: 90%; animation-delay: -2.2s; }
 
-#airport { left: 0; bottom: 0; width: 460px; height: 170px; }
+#airport { left: 0; bottom: 0; width: 460px; height: 190px; }
 .runway {
   position: absolute;
   left: 0;
   bottom: 14px;
   width: 430px;
-  height: 42px;
+  height: 46px;
   background: linear-gradient(180deg, #8a93a6, #6d7789);
   border-radius: 10px;
   border: 3px solid #5a6375;
@@ -187,13 +187,108 @@ html, body {
 .runway-stripes {
   position: absolute;
   top: 50%;
-  left: 0; right: 0;
+  left: 74px; right: 40px;
   height: 4px;
   transform: translateY(-50%);
-  background: repeating-linear-gradient(90deg, #fff 0 26px, transparent 26px 52px);
+  background: repeating-linear-gradient(90deg, #fff 0 22px, transparent 22px 44px);
   border-radius: 2px;
   opacity: 0.9;
 }
+.runway-threshold {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  width: 22px;
+  background: repeating-linear-gradient(180deg, #fff 0 4px, transparent 4px 9px);
+  opacity: 0.85;
+}
+.th-left { left: 6px; }
+.th-right { right: 6px; }
+.runway-number {
+  position: absolute;
+  left: 36px;
+  top: 50%;
+  transform: translateY(-50%) rotate(90deg);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: 1px;
+}
+.runway-lights {
+  position: absolute;
+  left: 10px; right: 10px;
+  height: 5px;
+  background: repeating-linear-gradient(90deg, #ffe28a 0 5px, transparent 5px 42px);
+  animation: runway-glow 1.4s ease-in-out infinite alternate;
+}
+.lights-top { top: 1px; }
+.lights-bottom { bottom: 1px; animation-delay: -0.7s; }
+@keyframes runway-glow { from { opacity: 0.5; } to { opacity: 1; } }
+
+.windsock {
+  position: absolute;
+  left: 436px;
+  bottom: 60px;
+  width: 46px;
+  height: 60px;
+}
+.windsock-pole {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 5px;
+  height: 60px;
+  background: #5a6375;
+  border-radius: 3px;
+}
+.windsock-cone {
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  width: 38px;
+  height: 15px;
+  background: repeating-linear-gradient(90deg, #ff7043 0 8px, #fff 8px 16px);
+  border: 2.5px solid #3b4a6b;
+  border-radius: 8px 4px 4px 8px;
+  clip-path: polygon(0 0, 100% 18%, 100% 82%, 0 100%);
+  transform-origin: left center;
+  animation: windsock-wave 2.6s ease-in-out infinite alternate;
+}
+@keyframes windsock-wave {
+  from { transform: rotate(-9deg) scaleY(0.95); }
+  to   { transform: rotate(11deg) scaleY(1.05); }
+}
+
+.airport-sign {
+  position: absolute;
+  left: 12px;
+  bottom: 158px;
+  background: #fff;
+  border: 3px solid var(--ink);
+  border-radius: 10px;
+  padding: 3px 10px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.82rem;
+  color: var(--ink);
+  box-shadow: 0 4px 10px rgba(59, 74, 107, 0.2);
+  transform: rotate(-3deg);
+}
+.sign-heart { color: var(--pink); }
+.tower-radar {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  width: 26px;
+  height: 6px;
+  margin-left: -13px;
+  background: #5a6375;
+  border-radius: 3px;
+  transform-origin: center;
+  animation: radar-spin 3.2s linear infinite;
+}
+@keyframes radar-spin { to { transform: rotate(360deg); } }
 .tower {
   position: absolute;
   left: 30px;
@@ -258,9 +353,9 @@ html, body {
 
 #plane {
   position: absolute;
-  left: 210px;
-  bottom: 46px;
-  width: 130px;
+  left: 200px;
+  bottom: 54px;
+  width: 140px;
   pointer-events: none;
   animation: plane-idle 3s ease-in-out infinite alternate;
   transform-origin: 40% 60%;
@@ -297,11 +392,21 @@ html, body {
     3px 3px 0 #fff, -3px 3px 0 #fff, 3px -3px 0 #fff, -3px -3px 0 #fff,
     6px 2px 0 #fff, -6px 2px 0 #fff, 2px 6px 0 #fff, 2px -6px 0 #fff,
     0 10px 22px rgba(90, 140, 190, 0.45);
-  animation: title-float 4s ease-in-out infinite alternate;
+  animation: title-float 3s ease-in-out infinite alternate;
 }
 @keyframes title-float {
-  from { transform: translateX(-50%) translateY(0) rotate(-0.6deg); }
-  to   { transform: translateX(-50%) translateY(-8px) rotate(0.6deg); }
+  from { transform: translateX(-50%) translateY(0) rotate(-1.4deg); }
+  to   { transform: translateX(-50%) translateY(-10px) rotate(1.4deg); }
+}
+/* each letter waves and bounces on its own (spans injected by JS) */
+.title-letter {
+  display: inline-block;
+  animation: letter-wave 1.7s ease-in-out infinite;
+}
+@keyframes letter-wave {
+  0%, 100% { transform: translateY(0) rotate(-4deg) scale(1); }
+  30%      { transform: translateY(-14px) rotate(3deg) scale(1.08); }
+  60%      { transform: translateY(3px) rotate(5deg) scale(0.97); }
 }
 
 #stats {
@@ -495,6 +600,23 @@ html, body {
 
 /* --- Earn modal --- */
 #earn-form { display: flex; gap: 10px; }
+.input-wrap { position: relative; flex: 1; display: flex; }
+#earn-placeholder {
+  position: absolute;
+  left: 21px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a7b0c4;
+  font-size: 1.05rem;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: calc(100% - 40px);
+  opacity: 1;
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+#earn-placeholder.swap { opacity: 0; transform: translateY(calc(-50% - 6px)); }
+#earn-placeholder.hide { opacity: 0; transition: opacity 0.15s ease; }
 #earn-input {
   flex: 1;
   font-family: var(--font-body);
@@ -630,6 +752,8 @@ html, body {
 }
 .shop-item:hover { transform: translateX(4px); border-color: #cfdcf0; }
 .shop-item.bought { opacity: 0.65; }
+.shop-item.locked { opacity: 0.55; filter: grayscale(0.5); }
+.shop-item.locked .shop-item-icon { filter: grayscale(1) opacity(0.6); }
 .shop-item-icon {
   grid-row: span 2;
   font-size: 40px;
@@ -875,6 +999,41 @@ html, body {
   margin-top: 40px;
   background: linear-gradient(180deg, #6cb4ee, #4a92d6);
   font-size: 1.1rem;
+}
+
+/* ============================================================
+   MUSIC TOGGLE + RISING HEARTS
+   ============================================================ */
+
+#music-toggle {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 60;
+  width: 46px;
+  height: 46px;
+  border: 3px solid rgba(59, 74, 107, 0.15);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 1.15rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#music-toggle:hover { transform: scale(1.12) rotate(-6deg); }
+#music-toggle.muted { filter: grayscale(1) opacity(0.7); }
+
+#rising-hearts {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+.rise-heart {
+  position: absolute;
+  will-change: transform, opacity;
+  pointer-events: none;
 }
 
 /* ============================================================

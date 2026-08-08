@@ -15,6 +15,7 @@ const defaultState = () => ({
   coins: 0,
   love: 0,
   loveUnlocked: false,   // set by "Start dating"
+  musicMuted: false,
   usedWords: [],         // good/bad keywords already spent
   letterClaimed: false,  // love letter +10 claimed
   purchased: [],         // shop item ids
@@ -87,11 +88,21 @@ const GOOD_WORDS = new Set([
   "boundless","unconditional","cherish","adore","admire","respect","trust","magic","fate",
   "paradise","serendipity","valentine","romance","romantic","lucky","blessed","complete",
   "whole","partner","teammate","bestfriend","confidant","haven","anchor","compass","north",
-  // portuguese sweetness
-  "amor","querida","fofa","fofinha","maravilhosa","perfeita","carinhosa","preciosa",
-  "princesa","anjo","coração","saudade","paixão","encantadora","deslumbrante",
-  // croatian sweetness
-  "lijepa","draga","ljubav","savršena","predivna","srce","anđele","zlato","dušo",
+  // qualities you can love ("I love your ...")
+  "humor","humour","kindness","patience","smile","laugh","laughter","giggle","giggles",
+  "eyes","voice","hair","lips","dimples","freckles","blush","hugs","hug","kiss","kisses",
+  "cuddles","cuddle","warmth","honesty","loyalty","courage","generosity","empathy",
+  "compassion","intelligence","grace","charm","energy","positivity","vibe","vibes",
+  "presence","company","personality","character","soul","mind","touch","style","cooking",
+  "advice","wisdom","strength","dedication","effort","attention","affection","devotion",
+  "care","tenderness","sweetness","gentleness","thoughtfulness","selflessness","jokes",
+  "listener","optimism","enthusiasm","imagination","creativity","spirit","aura","glowup",
+  // things you do / how you make me feel ("you make me feel ...")
+  "listen","support","protect","comfort","encourage","motivate","inspire","appreciate",
+  "appreciated","valued","wanted","needed","seen","heard","understood","loved","happy",
+  "happier","alive","peace","peaceful","butterflies","smitten","cozy","snug","secure",
+  "protected","cherished","adored","spoiled","grateful","thankful","proud","believe",
+  "belong","complete","fulfilled","content","relaxed","excited","giddy","warm","free",
 ]);
 
 const BAD_WORDS = new Set([
@@ -104,8 +115,6 @@ const BAD_WORDS = new Set([
   "childish","immature","messy","gross","smelly","stinky","fat","hideous","repulsive",
   "unbearable","insufferable","dreadful","vile","wicked","heartless","soulless","bitter",
   "grumpy","moody","dramatic","exhausting","overrated","basic","cringe","mid","meh",
-  "feia","burra","chata","horrível","irritante","preguiçosa",
-  "ružna","glupa","dosadna","grozna",
 ]);
 
 /* ------------------------------------------------------------
@@ -146,17 +155,17 @@ const SHOP_ITEMS = [
     id: "calling",
     icon: "📞",
     title: "Start calling",
-    desc: "You have been texting for a while! Time for an upgrade to voice! +5€/s",
+    desc: "You have been texting for a while! Time for an upgrade to voice! +1€/s",
     cost: { coins: 15 },
-    incomeMoney: 5,
+    incomeMoney: 1,
   },
   {
     id: "playing",
     icon: "🎮",
     title: "Start playing",
-    desc: "It's a thing! You are close now, play some games together! +10€/s",
+    desc: "It's a thing! You are close now, play some games together! +1€/s",
     cost: { coins: 20 },
-    incomeMoney: 10,
+    incomeMoney: 1,
   },
   {
     id: "dating",
@@ -236,6 +245,72 @@ const Sound = (() => {
 })();
 
 document.addEventListener("pointerdown", () => Sound.unlock(), { once: true });
+
+/* ------------------------------------------------------------
+   Background music (two tracks alternating, low volume)
+   ------------------------------------------------------------ */
+
+const Music = (() => {
+  const MUSIC_VOLUME = 0.12;
+  let tracks = [];
+  let current = 0;
+  let started = false;
+
+  function init() {
+    tracks = [document.getElementById("music-a"), document.getElementById("music-b")];
+    tracks.forEach((t, i) => {
+      t.volume = MUSIC_VOLUME;
+      t.addEventListener("ended", () => {
+        current = (i + 1) % tracks.length;
+        playCurrent();
+      });
+    });
+  }
+
+  function playCurrent() {
+    if (state.musicMuted) return;
+    const t = tracks[current];
+    t.volume = 0;
+    const p = t.play();
+    if (p) p.catch(() => {}); // autoplay may be blocked until interaction
+    // gentle fade-in
+    let v = 0;
+    const fade = setInterval(() => {
+      v += MUSIC_VOLUME / 20;
+      if (v >= MUSIC_VOLUME) { t.volume = MUSIC_VOLUME; clearInterval(fade); }
+      else t.volume = v;
+    }, 100);
+  }
+
+  function start() {
+    if (started) return;
+    started = true;
+    playCurrent();
+  }
+
+  function setMuted(m) {
+    state.musicMuted = m;
+    saveState();
+    const btn = document.getElementById("music-toggle");
+    btn.classList.toggle("muted", m);
+    btn.textContent = m ? "🔇" : "🔊";
+    if (m) {
+      tracks.forEach((t) => t.pause());
+    } else if (started) {
+      playCurrent();
+    }
+  }
+
+  return { init, start, setMuted };
+})();
+
+Music.init();
+document.addEventListener("pointerdown", () => Music.start(), { once: true });
+document.getElementById("music-toggle").addEventListener("click", (e) => {
+  e.stopPropagation();
+  Music.setMuted(!state.musicMuted);
+  Sound.click();
+});
 
 /* ------------------------------------------------------------
    DOM refs
@@ -423,6 +498,34 @@ function showFeedback(text, cls) {
   }, 6000);
 }
 
+/* live-rotating placeholder suggestions while the input is empty */
+const EARN_SUGGESTIONS = [
+  "You are so...",
+  "You make me feel...",
+  "With you I am...",
+  "I love how you...",
+  "I love your...",
+  "When I'm with you...",
+  "Your smile makes me...",
+  "You always know how to...",
+];
+const earnPlaceholder = document.getElementById("earn-placeholder");
+let suggestionIdx = 0;
+
+setInterval(() => {
+  if (el.earnInput.value !== "") return;
+  earnPlaceholder.classList.add("swap");
+  setTimeout(() => {
+    suggestionIdx = (suggestionIdx + 1) % EARN_SUGGESTIONS.length;
+    earnPlaceholder.textContent = EARN_SUGGESTIONS[suggestionIdx];
+    earnPlaceholder.classList.remove("swap");
+  }, 460);
+}, 2800);
+
+el.earnInput.addEventListener("input", () => {
+  earnPlaceholder.classList.toggle("hide", el.earnInput.value !== "");
+});
+
 el.earnForm.addEventListener("submit", (e) => {
   e.preventDefault();
   Sound.click();
@@ -490,6 +593,7 @@ el.earnForm.addEventListener("submit", (e) => {
 
   saveState();
   el.earnInput.value = "";
+  earnPlaceholder.classList.remove("hide");
   el.earnInput.focus();
 });
 
@@ -581,19 +685,30 @@ function canAfford(item) {
   return true;
 }
 
+function isUnlocked(item) {
+  const idx = SHOP_ITEMS.indexOf(item);
+  return idx === 0 || state.purchased.includes(SHOP_ITEMS[idx - 1].id);
+}
+
 function renderShop() {
   el.shopScroll.innerHTML = "";
   for (const item of SHOP_ITEMS) {
     const bought = state.purchased.includes(item.id);
+    const unlocked = isUnlocked(item);
     const row = document.createElement("div");
-    row.className = "shop-item" + (bought ? " bought" : "");
+    row.className = "shop-item" + (bought ? " bought" : "") + (!bought && !unlocked ? " locked" : "");
+    const btnLabel = bought
+      ? "Purchased ✓"
+      : !unlocked
+        ? "🔒 Locked"
+        : `<span class="shop-cost">${costLabel(item.cost)}</span>`;
     row.innerHTML = `
       <div class="shop-item-icon">${item.icon}</div>
       <div class="shop-item-title">${item.title}</div>
-      <button class="btn btn-gold shop-item-buy" data-id="${item.id}" ${bought || !canAfford(item) ? "disabled" : ""}>
-        ${bought ? "Purchased ✓" : `<span class="shop-cost">${costLabel(item.cost)}</span>`}
+      <button class="btn btn-gold shop-item-buy" data-id="${item.id}" ${bought || !unlocked || !canAfford(item) ? "disabled" : ""}>
+        ${btnLabel}
       </button>
-      <div class="shop-item-desc">${item.desc}</div>
+      <div class="shop-item-desc">${!bought && !unlocked ? "Unlock the previous step of our story first…" : item.desc}</div>
     `;
     el.shopScroll.appendChild(row);
   }
@@ -607,7 +722,7 @@ el.shopScroll.addEventListener("click", (e) => {
 
 function buyItem(id) {
   const item = SHOP_ITEMS.find((i) => i.id === id);
-  if (!item || state.purchased.includes(id) || !canAfford(item)) {
+  if (!item || state.purchased.includes(id) || !isUnlocked(item) || !canAfford(item)) {
     Sound.error();
     return;
   }
@@ -671,13 +786,18 @@ setInterval(() => {
    ------------------------------------------------------------ */
 
 const PLANE_SVG = `
-  <svg viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="55" cy="32" rx="42" ry="13" fill="#ffffff" stroke="#3b4a6b" stroke-width="3"/>
-    <path d="M 90 28 Q 104 24 110 30 Q 104 36 90 36 Z" fill="#9bd1ff" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
-    <path d="M 14 30 L 2 14 L 16 16 L 26 27 Z" fill="#9bd1ff" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
-    <path d="M 40 38 L 24 54 L 48 48 L 56 40 Z" fill="#ffb8c8" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
-    <circle cx="66" cy="29" r="4.5" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
-    <circle cx="50" cy="29" r="4.5" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
+  <svg viewBox="0 0 150 74" xmlns="http://www.w3.org/2000/svg">
+    <path d="M 26 34 Q 22 16 34 8 Q 44 14 46 26 L 48 36 Z" fill="#9bd1ff" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M 26 42 L 8 52 Q 20 54 32 50 L 40 44 Z" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M 22 40 Q 22 28 48 26 L 102 25 Q 132 26 143 38 Q 134 50 102 52 L 48 52 Q 22 50 22 40 Z" fill="#ffffff" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M 27 45 Q 60 51 110 50 Q 130 48 139 41 Q 132 49 102 52 L 48 52 Q 30 50 27 45 Z" fill="#ffb8c8"/>
+    <path d="M 124 30 Q 134 32 138 37 Q 130 36 122 35 Q 121 32 124 30 Z" fill="#3b4a6b"/>
+    <circle cx="96" cy="35" r="4.4" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
+    <circle cx="79" cy="35" r="4.4" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
+    <circle cx="62" cy="35" r="4.4" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
+    <path d="M 64 44 L 40 66 Q 58 66 74 60 L 90 46 Z" fill="#9bd1ff" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
+    <ellipse cx="88" cy="53" rx="11" ry="6.5" fill="#ffb8c8" stroke="#3b4a6b" stroke-width="3"/>
+    <ellipse cx="79" cy="53" rx="2.6" ry="4.2" fill="#3b4a6b"/>
   </svg>`;
 
 const BIRD_SVG = `
@@ -833,6 +953,65 @@ el.btnAgain.addEventListener("click", () => {
 });
 
 /* ------------------------------------------------------------
+   Wavey bouncy title (split into per-letter spans)
+   ------------------------------------------------------------ */
+
+function waveTitle() {
+  const text = el.title.textContent;
+  el.title.textContent = "";
+  [...text].forEach((ch, i) => {
+    const span = document.createElement("span");
+    span.className = "title-letter";
+    span.innerHTML = ch === " " ? "&nbsp;" : ch;
+    span.style.animationDelay = `${i * 0.09}s`;
+    el.title.appendChild(span);
+  });
+}
+
+/* ------------------------------------------------------------
+   Ambient rising hearts — intensity grows with shop progress
+   ------------------------------------------------------------ */
+
+const risingHearts = document.getElementById("rising-hearts");
+
+function spawnRisingHeart() {
+  const size = 13 + Math.random() * 22;
+  const x = Math.random() * window.innerWidth;
+  const drift = Math.random() * 120 - 60;
+  const dur = 8000 + Math.random() * 8000;
+
+  const h = document.createElement("div");
+  h.className = "rise-heart";
+  h.textContent = ["💗", "💕", "💖", "🩷", "❤️", "💘"][Math.floor(Math.random() * 6)];
+  h.style.fontSize = size + "px";
+  h.style.left = "0px";
+  h.style.top = "0px";
+  risingHearts.appendChild(h);
+
+  const anim = h.animate(
+    [
+      { transform: `translate(${x}px, ${window.innerHeight + 50}px) rotate(-8deg)`, opacity: 0 },
+      { opacity: 0.35 + Math.random() * 0.3, offset: 0.12 },
+      { transform: `translate(${x + drift * 0.5}px, ${window.innerHeight * 0.45}px) rotate(8deg)`, offset: 0.5 },
+      { opacity: 0.4, offset: 0.85 },
+      { transform: `translate(${x + drift}px, -70px) rotate(-6deg)`, opacity: 0 },
+    ],
+    { duration: dur, easing: "linear" }
+  );
+  anim.onfinish = () => h.remove();
+}
+
+function scheduleRisingHearts() {
+  const progress = state.purchased.length; // 0..6
+  // no hearts before the first purchase; then ramp up gently
+  const delay = progress === 0 ? 2500 : Math.max(1400, 7500 - progress * 1050) * (0.7 + Math.random() * 0.6);
+  setTimeout(() => {
+    if (state.purchased.length > 0) spawnRisingHeart();
+    scheduleRisingHearts();
+  }, delay);
+}
+
+/* ------------------------------------------------------------
    Restore progress on load
    ------------------------------------------------------------ */
 
@@ -840,6 +1019,7 @@ function restore() {
   loadState();
   renderStats();
   renderLetterClaim();
+  Music.setMuted(state.musicMuted);
 
   if (state.stage === "ticket") {
     hideMainUi();
@@ -860,4 +1040,6 @@ function restore() {
 }
 
 restore();
+waveTitle();
 scheduleFlyers();
+scheduleRisingHearts();

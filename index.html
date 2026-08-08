@@ -49,25 +49,52 @@
   <div id="airport" class="scenery">
     <div class="tower">
       <div class="tower-top"></div>
+      <div class="tower-radar"></div>
       <div class="tower-pole"></div>
       <div class="tower-light"></div>
     </div>
     <div class="hangar"></div>
+    <div class="airport-sign">OPO ✈ <span class="sign-heart">♥</span></div>
+    <div class="windsock">
+      <div class="windsock-pole"></div>
+      <div class="windsock-cone"></div>
+    </div>
     <div class="runway">
+      <div class="runway-threshold th-left"></div>
+      <div class="runway-threshold th-right"></div>
+      <div class="runway-number">28</div>
       <div class="runway-stripes"></div>
+      <div class="runway-lights lights-top"></div>
+      <div class="runway-lights lights-bottom"></div>
     </div>
     <div id="plane">
-      <svg viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg">
-        <!-- cartoon jet, facing right -->
-        <ellipse cx="55" cy="32" rx="42" ry="13" fill="#ffffff" stroke="#3b4a6b" stroke-width="3"/>
-        <path d="M 90 28 Q 104 24 110 30 Q 104 36 90 36 Z" fill="#ff8fa3" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
-        <path d="M 14 30 L 2 14 L 16 16 L 26 27 Z" fill="#ff8fa3" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
-        <path d="M 40 38 L 24 54 L 48 48 L 56 40 Z" fill="#9bd1ff" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
-        <path d="M 46 26 L 34 12 L 54 16 L 60 26 Z" fill="#9bd1ff" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
-        <circle cx="72" cy="29" r="4.5" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
-        <circle cx="58" cy="29" r="4.5" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
-        <circle cx="44" cy="29" r="4.5" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
-        <path d="M 84 24 Q 92 22 96 26" fill="none" stroke="#3b4a6b" stroke-width="2.5" stroke-linecap="round"/>
+      <svg viewBox="0 0 150 74" xmlns="http://www.w3.org/2000/svg">
+        <!-- cartoon jet, side view, facing right -->
+        <!-- tail fin -->
+        <path d="M 26 34 Q 22 16 34 8 Q 44 14 46 26 L 48 36 Z" fill="#ff8fa3" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
+        <!-- rear stabilizer -->
+        <path d="M 26 42 L 8 52 Q 20 54 32 50 L 40 44 Z" fill="#ffb8c8" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
+        <!-- fuselage -->
+        <path d="M 22 40 Q 22 28 48 26 L 102 25 Q 132 26 143 38 Q 134 50 102 52 L 48 52 Q 22 50 22 40 Z" fill="#ffffff" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
+        <!-- belly stripe -->
+        <path d="M 27 45 Q 60 51 110 50 Q 130 48 139 41 Q 132 49 102 52 L 48 52 Q 30 50 27 45 Z" fill="#9bd1ff"/>
+        <!-- cockpit windshield -->
+        <path d="M 124 30 Q 134 32 138 37 Q 130 36 122 35 Q 121 32 124 30 Z" fill="#3b4a6b"/>
+        <!-- windows -->
+        <circle cx="98" cy="35" r="4.4" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
+        <circle cx="82" cy="35" r="4.4" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
+        <circle cx="66" cy="35" r="4.4" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
+        <circle cx="50" cy="35" r="4.4" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
+        <!-- wing (single, swept back-down) -->
+        <path d="M 64 44 L 40 66 Q 58 66 74 60 L 90 46 Z" fill="#9bd1ff" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
+        <!-- engine under wing -->
+        <ellipse cx="88" cy="53" rx="11" ry="6.5" fill="#ff8fa3" stroke="#3b4a6b" stroke-width="3"/>
+        <ellipse cx="79" cy="53" rx="2.6" ry="4.2" fill="#3b4a6b"/>
+        <!-- landing gear -->
+        <line x1="116" y1="50" x2="116" y2="60" stroke="#3b4a6b" stroke-width="3"/>
+        <circle cx="116" cy="62" r="5" fill="#5a6375" stroke="#3b4a6b" stroke-width="2.5"/>
+        <line x1="58" y1="52" x2="58" y2="60" stroke="#3b4a6b" stroke-width="3"/>
+        <circle cx="58" cy="62" r="5" fill="#5a6375" stroke="#3b4a6b" stroke-width="2.5"/>
       </svg>
     </div>
   </div>
@@ -118,7 +145,10 @@
       <h2 class="modal-title"><span class="coin-icon"></span> Earn</h2>
       <p class="modal-desc">Type reasons why you love me to earn coins!<br><span class="hint">Every sweet word counts once… choose them well 😊</span></p>
       <form id="earn-form" autocomplete="off">
-        <input type="text" id="earn-input" placeholder="You are so..." maxlength="200">
+        <div class="input-wrap">
+          <input type="text" id="earn-input" maxlength="200">
+          <span id="earn-placeholder">You are so...</span>
+        </div>
         <button type="submit" class="btn btn-primary" id="earn-submit">Send 💌</button>
       </form>
       <div id="earn-feedback"></div>
@@ -195,8 +225,16 @@
     </div>
   </div>
 
+  <!-- ambient hearts rising as the story progresses -->
+  <div id="rising-hearts"></div>
+
   <!-- flying coins / hearts land here -->
   <div id="fx-layer"></div>
+
+  <!-- background music -->
+  <button id="music-toggle" title="Music on/off">🔊</button>
+  <audio id="music-a" src="assets/music.mp3" preload="auto"></audio>
+  <audio id="music-b" src="assets/musicelectro.mp3" preload="auto"></audio>
 
   <script src="script.js"></script>
 </body>
