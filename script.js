@@ -1,0 +1,863 @@
+/* ============================================================
+   For my love — game logic
+   ============================================================ */
+
+"use strict";
+
+/* ------------------------------------------------------------
+   State & persistence (single organized localStorage key)
+   ------------------------------------------------------------ */
+
+const SAVE_KEY = "forMyLove.save.v1";
+
+const defaultState = () => ({
+  money: 0,
+  coins: 0,
+  love: 0,
+  loveUnlocked: false,   // set by "Start dating"
+  usedWords: [],         // good/bad keywords already spent
+  letterClaimed: false,  // love letter +10 claimed
+  purchased: [],         // shop item ids
+  stage: "main",         // main | ticket | end
+});
+
+let state = defaultState();
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    state = Object.assign(defaultState(), data);
+    if (!Array.isArray(state.usedWords)) state.usedWords = [];
+    if (!Array.isArray(state.purchased)) state.purchased = [];
+    state.love = clampLove(state.love);
+  } catch (e) {
+    console.warn("Could not load save, starting fresh.", e);
+    state = defaultState();
+  }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.warn("Could not save.", e);
+  }
+}
+
+function clampLove(v) {
+  return Math.max(0, Math.min(100, Math.round(v)));
+}
+
+/* ------------------------------------------------------------
+   Keyword lists
+   ------------------------------------------------------------ */
+
+const GOOD_WORDS = new Set([
+  // looks
+  "beautiful","gorgeous","pretty","cute","adorable","lovely","stunning","attractive",
+  "hot","sexy","dreamy","radiant","glowing","breathtaking","dazzling","mesmerizing",
+  "captivating","alluring","elegant","graceful","charming","enchanting","angelic",
+  "flawless","photogenic","irresistible","cutie","beauty","goddess","model","gata","linda",
+  // personality
+  "kind","caring","sweet","smart","intelligent","funny","hilarious","witty","clever",
+  "wise","gentle","loving","warm","thoughtful","patient","honest","loyal","generous",
+  "creative","talented","brave","strong","supportive","understanding","inspiring",
+  "motivating","silly","playful","fun","calm","peaceful","soothing","healing","genuine",
+  "real","authentic","humble","selfless","ambitious","hardworking","determined",
+  "resilient","courageous","passionate","devoted","faithful","tender","gifted","curious",
+  "adventurous","spontaneous","optimistic","cheerful","bubbly","goofy","sincere",
+  "trustworthy","dependable","reliable","protective","nurturing","empathetic","confident",
+  "independent","classy","stylish","fashionable","organized","dedicated","considerate",
+  // feelings & superlatives
+  "amazing","wonderful","perfect","incredible","brilliant","magical","unique","special",
+  "precious","marvelous","fantastic","fabulous","spectacular","extraordinary","phenomenal",
+  "delightful","blissful","heavenly","divine","lovable","huggable","kissable","cuddly",
+  "soft","best","favorite","irreplaceable","unforgettable","priceless","remarkable",
+  "outstanding","exceptional","impressive","legendary","iconic","majestic","glorious",
+  "wholesome","golden","magnificent","stellar","supreme","peerless","matchless","ideal",
+  // romance & poetry
+  "love","heart","soulmate","darling","treasure","everything","happiness","joy","comfort",
+  "home","safe","angel","sunshine","queen","princess","sweetheart","honey","baby","babe",
+  "dear","beloved","gem","jewel","pearl","diamond","gold","rose","flower","blossom",
+  "butterfly","music","melody","harmony","poetry","art","masterpiece","muse","inspiration",
+  "star","moon","universe","world","light","spark","fire","flame","glow","shine","sparkle",
+  "dream","miracle","blessing","destiny","forever","always","eternal","endless","infinite",
+  "boundless","unconditional","cherish","adore","admire","respect","trust","magic","fate",
+  "paradise","serendipity","valentine","romance","romantic","lucky","blessed","complete",
+  "whole","partner","teammate","bestfriend","confidant","haven","anchor","compass","north",
+  // portuguese sweetness
+  "amor","querida","fofa","fofinha","maravilhosa","perfeita","carinhosa","preciosa",
+  "princesa","anjo","coração","saudade","paixão","encantadora","deslumbrante",
+  // croatian sweetness
+  "lijepa","draga","ljubav","savršena","predivna","srce","anđele","zlato","dušo",
+]);
+
+const BAD_WORDS = new Set([
+  "ugly","stupid","dumb","annoying","boring","lazy","mean","rude","hate","gross",
+  "disgusting","horrible","terrible","awful","bad","worst","idiot","loser","weird",
+  "creepy","selfish","cold","cruel","toxic","liar","fake","evil","nasty","trash",
+  "garbage","pathetic","useless","worthless","dull","bland","obnoxious","irritating",
+  "clingy","needy","crazy","psycho","witch","monster","demon","devil","nightmare",
+  "disaster","jealous","petty","shallow","arrogant","cocky","bossy","nagging","whiny",
+  "childish","immature","messy","gross","smelly","stinky","fat","hideous","repulsive",
+  "unbearable","insufferable","dreadful","vile","wicked","heartless","soulless","bitter",
+  "grumpy","moody","dramatic","exhausting","overrated","basic","cringe","mid","meh",
+  "feia","burra","chata","horrível","irritante","preguiçosa",
+  "ružna","glupa","dosadna","grozna",
+]);
+
+/* ------------------------------------------------------------
+   Love letter text  — edit LETTER_TEXT to change the letter ♥
+   ------------------------------------------------------------ */
+
+const LETTER_TEXT = `My dearest Lana,
+
+If you are reading this, it means you found your way to the softest corner of this little sky I built for you. I wanted to make you something that no store could sell and no screen could copy — a small world where every cloud drifts just for you.
+
+Do you remember how it all started? A message. Just words on a screen, and yet somehow they carried everything: the laughter, the late nights, the "one more minute" that always turned into hours. Distance drew a long line between Porto and Zagreb, but we kept folding that line smaller and smaller with every call, every game, every sleepy goodnight.
+
+I love the way you laugh at your own jokes before you finish telling them. I love how you pretend not to care and then care more than anyone I have ever met. I love the little pause you take before saying something important, like the words need a running start. I love that being with you feels less like something new and more like something remembered — as if some part of me always knew you were out there.
+
+They say long distance is hard, and they are right. But they never mention the secret: that missing someone this much is only possible when you have someone this worth missing. Every kilometre between us is just proof of how far love can stretch without breaking.
+
+So here is my promise, written in this cartoon sky: I will keep choosing you. On the slow days and the loud days, through time zones and bad connections, through every "goodnight" that should have been a "stay". One day soon there will be no screen between us — just an airport, a runway, and me, running out of patience in the best possible way.
+
+Until then, keep this little world close. The clouds will keep moving, the plane will keep waiting, and so will I.
+
+Forever yours,
+with all my heart ♥`;
+
+/* ------------------------------------------------------------
+   Shop items
+   ------------------------------------------------------------ */
+
+const SHOP_ITEMS = [
+  {
+    id: "texting",
+    icon: "📱",
+    title: "Start texting",
+    desc: "Start talking on discord. +1€/s",
+    cost: { coins: 10 },
+    incomeMoney: 1,
+  },
+  {
+    id: "calling",
+    icon: "📞",
+    title: "Start calling",
+    desc: "You have been texting for a while! Time for an upgrade to voice! +5€/s",
+    cost: { coins: 15 },
+    incomeMoney: 5,
+  },
+  {
+    id: "playing",
+    icon: "🎮",
+    title: "Start playing",
+    desc: "It's a thing! You are close now, play some games together! +10€/s",
+    cost: { coins: 20 },
+    incomeMoney: 10,
+  },
+  {
+    id: "dating",
+    icon: "💗",
+    title: "Start dating",
+    desc: "You are closer than ever, time to take things to the next level! Tip: You can now earn hearts! +10❤️",
+    cost: { coins: 15, money: 500 },
+  },
+  {
+    id: "videocall",
+    icon: "📹",
+    title: "Start videocalling during bedtime",
+    desc: "You are officially one, the only thing in the way now is the distance. +1❤️/s",
+    cost: { love: 20 },   // requirement only — hearts are not taken away
+    loveIsRequirementOnly: true,
+    incomeLove: 1,
+  },
+  {
+    id: "ticket",
+    icon: "🎫",
+    title: "The time has come, fly!",
+    desc: "After so long, it's finally over, defeat the distance and be together.",
+    cost: { money: 1500, love: 100 },
+    loveIsRequirementOnly: true,
+  },
+];
+
+/* ------------------------------------------------------------
+   Sound engine (WebAudio, no files needed)
+   ------------------------------------------------------------ */
+
+const Sound = (() => {
+  let ctx = null;
+
+  function ensure() {
+    if (!ctx) {
+      try { ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch (e) { return null; }
+    }
+    if (ctx.state === "suspended") ctx.resume();
+    return ctx;
+  }
+
+  function tone(freqFrom, freqTo, dur, type = "sine", vol = 0.15, delay = 0) {
+    const c = ensure();
+    if (!c) return;
+    const t0 = c.currentTime + delay;
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freqFrom, t0);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(1, freqTo), t0 + dur);
+    gain.gain.setValueAtTime(vol, t0);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(gain).connect(c.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.05);
+  }
+
+  return {
+    unlock() { ensure(); },
+    click()  { tone(600, 220, 0.09, "sine", 0.18); },
+    open()   { tone(300, 620, 0.16, "sine", 0.14); tone(450, 900, 0.18, "sine", 0.07, 0.04); },
+    close()  { tone(560, 240, 0.16, "sine", 0.14); },
+    coin(n = 0) { tone(880, 1180, 0.1, "square", 0.06, n * 0.08); tone(1320, 1760, 0.12, "square", 0.05, n * 0.08 + 0.06); },
+    heart()  { tone(520, 780, 0.18, "sine", 0.12); tone(660, 990, 0.2, "sine", 0.08, 0.07); },
+    buy()    { tone(392, 392, 0.12, "triangle", 0.14); tone(494, 494, 0.12, "triangle", 0.14, 0.09); tone(587, 587, 0.2, "triangle", 0.14, 0.18); },
+    error()  { tone(180, 110, 0.22, "sawtooth", 0.1); },
+    takeoff() {
+      tone(90, 380, 2.4, "sawtooth", 0.05);
+      tone(120, 500, 2.4, "triangle", 0.06, 0.15);
+    },
+    tada() {
+      [523, 659, 784, 1047].forEach((f, i) => tone(f, f, 0.35, "triangle", 0.12, i * 0.13));
+    },
+  };
+})();
+
+document.addEventListener("pointerdown", () => Sound.unlock(), { once: true });
+
+/* ------------------------------------------------------------
+   DOM refs
+   ------------------------------------------------------------ */
+
+const $ = (sel) => document.querySelector(sel);
+
+const el = {
+  title: $("#title"),
+  stats: $("#stats"),
+  cards: $("#cards"),
+  moneyValue: $("#money-value"),
+  coinsValue: $("#coins-value"),
+  loveValue: $("#love-value"),
+  statMoney: $("#stat-money"),
+  statCoins: $("#stat-coins"),
+  statLove: $("#stat-love"),
+  overlay: $("#modal-overlay"),
+  earnForm: $("#earn-form"),
+  earnInput: $("#earn-input"),
+  earnFeedback: $("#earn-feedback"),
+  letterText: $("#letter-text"),
+  letterScroll: $("#letter-scroll"),
+  letterClaim: $("#letter-claim"),
+  shopScroll: $("#shop-scroll"),
+  ticketStage: $("#ticket-stage"),
+  ticket: $("#ticket"),
+  ticketQr: $("#ticket-qr"),
+  startJourney: $("#start-journey"),
+  endOverlay: $("#end-overlay"),
+  btnAgain: $("#btn-again"),
+  plane: $("#plane"),
+  airport: $("#airport"),
+  flyers: $("#flyers"),
+  fxLayer: $("#fx-layer"),
+};
+
+/* ------------------------------------------------------------
+   Stats HUD
+   ------------------------------------------------------------ */
+
+function bump(elm) {
+  elm.classList.remove("bump");
+  void elm.offsetWidth; // restart animation
+  elm.classList.add("bump");
+}
+
+function renderStats(animate = {}) {
+  el.moneyValue.textContent = Math.floor(state.money).toLocaleString("en-US");
+  el.coinsValue.textContent = state.coins;
+  el.loveValue.textContent = state.love;
+  el.statLove.classList.toggle("locked", state.love < 1);
+  if (animate.money) bump(el.statMoney);
+  if (animate.coins) bump(el.statCoins);
+  if (animate.love) bump(el.statLove);
+}
+
+function addMoney(n) {
+  state.money += n;
+  renderStats({ money: true });
+}
+
+function addCoins(n) {
+  state.coins += n;
+  renderStats({ coins: true });
+}
+
+function addLove(n) {
+  const before = state.love;
+  state.love = clampLove(state.love + n);
+  if (state.love !== before) renderStats({ love: true });
+}
+
+/* ------------------------------------------------------------
+   Flying coin / heart FX
+   ------------------------------------------------------------ */
+
+function flyToStat(kind, fromX, fromY, delay = 0) {
+  const target = kind === "coin" ? el.statCoins : el.statLove;
+  const rect = target.getBoundingClientRect();
+  const toX = rect.left + rect.width / 2;
+  const toY = rect.top + rect.height / 2;
+
+  const node = document.createElement("div");
+  if (kind === "coin") {
+    node.className = "fx-coin";
+    node.innerHTML = '<span class="coin-icon"></span>';
+  } else {
+    node.className = "fx-heart";
+    node.textContent = "💗";
+  }
+  node.style.left = "0px";
+  node.style.top = "0px";
+  el.fxLayer.appendChild(node);
+
+  const jumpX = fromX + (Math.random() * 60 - 30);
+  const jumpY = fromY - 70 - Math.random() * 40;
+
+  const anim = node.animate(
+    [
+      { transform: `translate(${fromX}px, ${fromY}px) scale(0.4)`, opacity: 0 },
+      { transform: `translate(${jumpX}px, ${jumpY}px) scale(1.25)`, opacity: 1, offset: 0.3 },
+      { transform: `translate(${(jumpX + toX) / 2}px, ${jumpY - 20}px) scale(1.1)`, opacity: 1, offset: 0.55 },
+      { transform: `translate(${toX}px, ${toY}px) scale(0.5)`, opacity: 0.9 },
+    ],
+    { duration: 950, delay, easing: "cubic-bezier(0.45, 0, 0.35, 1)", fill: "backwards" }
+  );
+  anim.onfinish = () => {
+    node.remove();
+    bump(kind === "coin" ? el.statCoins : el.statLove);
+  };
+}
+
+/* ------------------------------------------------------------
+   Modal system
+   ------------------------------------------------------------ */
+
+let activeModal = null;
+
+function openModal(id) {
+  const modal = document.getElementById(id);
+  if (!modal || activeModal) return;
+  activeModal = modal;
+  Sound.open();
+  el.overlay.classList.remove("hidden");
+  modal.classList.add("opening");
+  requestAnimationFrame(() => requestAnimationFrame(() => modal.classList.add("open")));
+  if (id === "modal-shop") renderShop();
+  if (id === "modal-letter") startLetterHearts();
+  if (id === "modal-earn") setTimeout(() => el.earnInput.focus(), 350);
+}
+
+function closeModal() {
+  if (!activeModal) return;
+  const modal = activeModal;
+  activeModal = null;
+  Sound.close();
+  modal.classList.remove("open");
+  el.overlay.classList.add("hidden");
+  stopLetterHearts();
+  setTimeout(() => modal.classList.remove("opening"), 400);
+}
+
+document.querySelectorAll(".card").forEach((card) => {
+  card.addEventListener("click", () => {
+    Sound.click();
+    openModal(card.dataset.modal);
+  });
+});
+document.querySelectorAll(".modal-close").forEach((btn) =>
+  btn.addEventListener("click", closeModal)
+);
+el.overlay.addEventListener("click", (e) => {
+  if (e.target === el.overlay) closeModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeModal();
+});
+
+/* ------------------------------------------------------------
+   Card 1 — Earn
+   ------------------------------------------------------------ */
+
+function normalizeWord(w) {
+  return w
+    .toLowerCase()
+    .normalize("NFC")
+    .replace(/[^\p{L}\p{N}]/gu, "");
+}
+
+function showFeedback(text, cls) {
+  const line = document.createElement("div");
+  line.className = `feedback-line ${cls}`;
+  line.textContent = text;
+  el.earnFeedback.prepend(line);
+  requestAnimationFrame(() => requestAnimationFrame(() => line.classList.add("show")));
+  while (el.earnFeedback.children.length > 3) {
+    el.earnFeedback.lastElementChild.remove();
+  }
+  setTimeout(() => {
+    if (line.parentNode) {
+      line.classList.remove("show");
+      setTimeout(() => line.remove(), 450);
+    }
+  }, 6000);
+}
+
+el.earnForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  Sound.click();
+  const phrase = el.earnInput.value.trim();
+  if (!phrase) return;
+
+  const words = [...new Set(phrase.split(/\s+/).map(normalizeWord).filter(Boolean))];
+  const newGood = [];
+  const newBad = [];
+  let repeated = 0;
+
+  for (const w of words) {
+    if (GOOD_WORDS.has(w)) {
+      if (state.usedWords.includes(w)) { repeated++; continue; }
+      state.usedWords.push(w);
+      newGood.push(w);
+    } else if (BAD_WORDS.has(w)) {
+      if (state.usedWords.includes(w)) { repeated++; continue; }
+      state.usedWords.push(w);
+      newBad.push(w);
+    }
+  }
+
+  const inputRect = el.earnInput.getBoundingClientRect();
+  const srcX = inputRect.left + inputRect.width / 2;
+  const srcY = inputRect.top;
+
+  if (newGood.length > 0) {
+    addCoins(newGood.length);
+    newGood.forEach((_, i) => {
+      flyToStat("coin", srcX + (Math.random() * 120 - 60), srcY, i * 120);
+      Sound.coin(i);
+    });
+    if (state.loveUnlocked) {
+      addLove(newGood.length);
+      newGood.forEach((_, i) => flyToStat("heart", srcX + (Math.random() * 120 - 60), srcY + 20, i * 140 + 200));
+      Sound.heart();
+    }
+    const loveTxt = state.loveUnlocked ? ` and +${newGood.length} ❤️` : "";
+    showFeedback(`Awww! +${newGood.length} 🪙${loveTxt} for: ${newGood.join(", ")}`, "good");
+  }
+
+  if (newBad.length > 0) {
+    el.earnInput.classList.remove("shake");
+    void el.earnInput.offsetWidth;
+    el.earnInput.classList.add("shake");
+    Sound.error();
+    if (state.loveUnlocked) {
+      addLove(-newBad.length);
+      showFeedback(`Hey!! 😠 -${newBad.length} ❤️ for: ${newBad.join(", ")}`, "bad");
+    } else {
+      showFeedback(`Hey!! 😠 no coins for: ${newBad.join(", ")}`, "bad");
+    }
+  }
+
+  if (newGood.length === 0 && newBad.length === 0) {
+    if (repeated > 0) {
+      showFeedback("You already told me that one! 😊 Try new words~", "neutral");
+    } else {
+      showFeedback("Hmm, tell me more… use words from the heart 💭", "neutral");
+    }
+  } else if (repeated > 0) {
+    showFeedback(`(${repeated} word${repeated > 1 ? "s" : ""} already used before)`, "neutral");
+  }
+
+  saveState();
+  el.earnInput.value = "";
+  el.earnInput.focus();
+});
+
+/* ------------------------------------------------------------
+   Card 2 — Love Letter
+   ------------------------------------------------------------ */
+
+el.letterText.textContent = LETTER_TEXT;
+
+function renderLetterClaim() {
+  if (state.letterClaimed) {
+    el.letterClaim.disabled = true;
+    el.letterClaim.innerHTML = "I love you too 💗 (claimed)";
+  }
+}
+
+el.letterClaim.addEventListener("click", () => {
+  if (state.letterClaimed) return;
+  state.letterClaimed = true;
+  Sound.buy();
+  const rect = el.letterClaim.getBoundingClientRect();
+  addCoins(10);
+  for (let i = 0; i < 10; i++) {
+    flyToStat("coin", rect.left + rect.width / 2 + (Math.random() * 100 - 50), rect.top, i * 90);
+    if (i < 4) Sound.coin(i);
+  }
+  renderLetterClaim();
+  saveState();
+});
+
+/* hearts floating off the letter card while open */
+let heartTimer = null;
+
+function startLetterHearts() {
+  stopLetterHearts();
+  heartTimer = setInterval(() => {
+    const modal = document.getElementById("modal-letter");
+    if (!modal.classList.contains("open")) return;
+    const r = modal.getBoundingClientRect();
+    const side = Math.floor(Math.random() * 4);
+    let x, y;
+    if (side === 0) { x = r.left + Math.random() * r.width; y = r.top; }
+    else if (side === 1) { x = r.left + Math.random() * r.width; y = r.bottom; }
+    else if (side === 2) { x = r.left; y = r.top + Math.random() * r.height; }
+    else { x = r.right; y = r.top + Math.random() * r.height; }
+
+    const h = document.createElement("div");
+    h.className = "float-heart";
+    h.textContent = ["💗", "💕", "💖", "🩷", "❤️"][Math.floor(Math.random() * 5)];
+    h.style.left = "0px";
+    h.style.top = "0px";
+    document.body.appendChild(h);
+
+    const driftX = x + (Math.random() * 140 - 70) + (side === 2 ? -80 : side === 3 ? 80 : 0);
+    const driftY = y - 120 - Math.random() * 100;
+    const anim = h.animate(
+      [
+        { transform: `translate(${x}px, ${y}px) scale(0.3) rotate(0deg)`, opacity: 0 },
+        { transform: `translate(${(x + driftX) / 2}px, ${(y + driftY) / 2}px) scale(1) rotate(${Math.random() * 40 - 20}deg)`, opacity: 0.9, offset: 0.4 },
+        { transform: `translate(${driftX}px, ${driftY}px) scale(0.6) rotate(${Math.random() * 60 - 30}deg)`, opacity: 0 },
+      ],
+      { duration: 2600 + Math.random() * 1200, easing: "ease-out" }
+    );
+    anim.onfinish = () => h.remove();
+  }, 380);
+}
+
+function stopLetterHearts() {
+  if (heartTimer) { clearInterval(heartTimer); heartTimer = null; }
+}
+
+/* ------------------------------------------------------------
+   Card 3 — Shop
+   ------------------------------------------------------------ */
+
+function costLabel(cost) {
+  const parts = [];
+  if (cost.coins) parts.push(`${cost.coins} <span class="coin-icon"></span>`);
+  if (cost.money) parts.push(`${cost.money}€`);
+  if (cost.love) parts.push(`${cost.love}❤️`);
+  return parts.join(" + ");
+}
+
+function canAfford(item) {
+  const c = item.cost;
+  if (c.coins && state.coins < c.coins) return false;
+  if (c.money && state.money < c.money) return false;
+  if (c.love && state.love < c.love) return false;
+  return true;
+}
+
+function renderShop() {
+  el.shopScroll.innerHTML = "";
+  for (const item of SHOP_ITEMS) {
+    const bought = state.purchased.includes(item.id);
+    const row = document.createElement("div");
+    row.className = "shop-item" + (bought ? " bought" : "");
+    row.innerHTML = `
+      <div class="shop-item-icon">${item.icon}</div>
+      <div class="shop-item-title">${item.title}</div>
+      <button class="btn btn-gold shop-item-buy" data-id="${item.id}" ${bought || !canAfford(item) ? "disabled" : ""}>
+        ${bought ? "Purchased ✓" : `<span class="shop-cost">${costLabel(item.cost)}</span>`}
+      </button>
+      <div class="shop-item-desc">${item.desc}</div>
+    `;
+    el.shopScroll.appendChild(row);
+  }
+}
+
+el.shopScroll.addEventListener("click", (e) => {
+  const btn = e.target.closest(".shop-item-buy");
+  if (!btn || btn.disabled) return;
+  buyItem(btn.dataset.id);
+});
+
+function buyItem(id) {
+  const item = SHOP_ITEMS.find((i) => i.id === id);
+  if (!item || state.purchased.includes(id) || !canAfford(item)) {
+    Sound.error();
+    return;
+  }
+
+  // pay
+  if (item.cost.coins) state.coins -= item.cost.coins;
+  if (item.cost.money) state.money -= item.cost.money;
+  if (item.cost.love && !item.loveIsRequirementOnly) state.love = clampLove(state.love - item.cost.love);
+
+  state.purchased.push(id);
+  Sound.buy();
+  renderStats({ money: true, coins: true });
+
+  if (id === "dating") {
+    state.loveUnlocked = true;
+    addLove(10);
+    const r = el.shopScroll.getBoundingClientRect();
+    for (let i = 0; i < 10; i++) {
+      flyToStat("heart", r.left + Math.random() * r.width, r.top + 60, i * 110);
+    }
+    Sound.heart();
+  }
+
+  saveState();
+  renderShop();
+
+  if (id === "ticket") {
+    setTimeout(startTicketStage, 500);
+  }
+}
+
+/* ------------------------------------------------------------
+   Income tick (every second)
+   ------------------------------------------------------------ */
+
+function incomePerSecond() {
+  let money = 0;
+  let love = 0;
+  for (const item of SHOP_ITEMS) {
+    if (!state.purchased.includes(item.id)) continue;
+    if (item.incomeMoney) money += item.incomeMoney;
+    if (item.incomeLove) love += item.incomeLove;
+  }
+  return { money, love };
+}
+
+setInterval(() => {
+  if (state.stage !== "main") return;
+  const inc = incomePerSecond();
+  let dirty = false;
+  if (inc.money > 0) { addMoney(inc.money); dirty = true; }
+  if (inc.love > 0 && state.love < 100) { addLove(inc.love); dirty = true; }
+  if (dirty) {
+    saveState();
+    if (activeModal && activeModal.id === "modal-shop") renderShop();
+  }
+}, 1000);
+
+/* ------------------------------------------------------------
+   Background flyers (planes & birds)
+   ------------------------------------------------------------ */
+
+const PLANE_SVG = `
+  <svg viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="55" cy="32" rx="42" ry="13" fill="#ffffff" stroke="#3b4a6b" stroke-width="3"/>
+    <path d="M 90 28 Q 104 24 110 30 Q 104 36 90 36 Z" fill="#9bd1ff" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M 14 30 L 2 14 L 16 16 L 26 27 Z" fill="#9bd1ff" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M 40 38 L 24 54 L 48 48 L 56 40 Z" fill="#ffb8c8" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="66" cy="29" r="4.5" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
+    <circle cx="50" cy="29" r="4.5" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
+  </svg>`;
+
+const BIRD_SVG = `
+  <svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="30" cy="24" rx="14" ry="9" fill="#ffd166" stroke="#3b4a6b" stroke-width="2.5"/>
+    <circle cx="42" cy="18" r="7" fill="#ffd166" stroke="#3b4a6b" stroke-width="2.5"/>
+    <path d="M 48 17 L 56 19 L 48 22 Z" fill="#ff8c42" stroke="#3b4a6b" stroke-width="2"/>
+    <circle cx="44" cy="16" r="1.6" fill="#3b4a6b"/>
+    <path class="bird-wing" d="M 28 22 Q 20 6 34 10 Q 38 16 32 24 Z" fill="#f4a940" stroke="#3b4a6b" stroke-width="2.5"/>
+  </svg>`;
+
+function spawnFlyer() {
+  const isPlane = Math.random() < 0.45;
+  const goingRight = Math.random() < 0.5;
+  const size = isPlane ? 55 + Math.random() * 60 : 26 + Math.random() * 22;
+  const y = 40 + Math.random() * (window.innerHeight * 0.55);
+  const tilt = (Math.random() * 16 - 8) * (goingRight ? 1 : -1); // up = taking off, down = landing
+  const dur = (isPlane ? 11000 : 16000) + Math.random() * 9000;
+
+  const f = document.createElement("div");
+  f.className = "flyer";
+  f.innerHTML = isPlane ? PLANE_SVG : BIRD_SVG;
+  f.style.width = size + "px";
+  f.style.top = "0px";
+  f.style.left = "0px";
+  f.querySelector("svg").style.width = "100%";
+  el.flyers.appendChild(f);
+
+  const startX = goingRight ? -size - 40 : window.innerWidth + 40;
+  const endX = goingRight ? window.innerWidth + 40 : -size - 40;
+  const flip = goingRight ? 1 : -1;
+  const endY = y - Math.tan((tilt * Math.PI) / 180) * (endX - startX) * 0.35 * flip;
+
+  const anim = f.animate(
+    [
+      { transform: `translate(${startX}px, ${y}px) scaleX(${flip}) rotate(${-tilt}deg)` },
+      { transform: `translate(${endX}px, ${endY}px) scaleX(${flip}) rotate(${-tilt}deg)` },
+    ],
+    { duration: dur, easing: "linear" }
+  );
+  anim.onfinish = () => f.remove();
+}
+
+function scheduleFlyers() {
+  const next = 8000 + Math.random() * 14000;
+  setTimeout(() => {
+    spawnFlyer();
+    scheduleFlyers();
+  }, next);
+}
+
+/* ------------------------------------------------------------
+   Ticket stage & final cutscene
+   ------------------------------------------------------------ */
+
+function buildQr() {
+  // deterministic fake QR: finder squares + pseudo-random modules
+  el.ticketQr.innerHTML = "";
+  let seed = 2803; // OPO→ZAG ;)
+  const rand = () => {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return seed / 0x7fffffff;
+  };
+  const N = 21;
+  const finder = (r, c) =>
+    (r < 7 && c < 7) || (r < 7 && c >= N - 7) || (r >= N - 7 && c < 7);
+  const finderOn = (r, c) => {
+    const lr = r < 7 ? r : r - (N - 7);
+    const lc = c < 7 ? c : c - (N - 7);
+    const border = lr === 0 || lr === 6 || lc === 0 || lc === 6;
+    const core = lr >= 2 && lr <= 4 && lc >= 2 && lc <= 4;
+    return border || core;
+  };
+  for (let r = 0; r < N; r++) {
+    for (let c = 0; c < N; c++) {
+      const cell = document.createElement("span");
+      const on = finder(r, c) ? finderOn(r, c) : rand() < 0.45;
+      if (on) cell.classList.add("on");
+      el.ticketQr.appendChild(cell);
+    }
+  }
+}
+
+function hideMainUi() {
+  closeModal();
+  [el.title, el.stats, el.cards].forEach((n) => n.classList.add("fade-out"));
+}
+
+function startTicketStage() {
+  state.stage = "ticket";
+  saveState();
+  hideMainUi();
+  buildQr();
+  Sound.tada();
+  el.ticketStage.classList.remove("hidden");
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      el.ticket.classList.add("landed");
+      setTimeout(() => el.startJourney.classList.remove("hidden"), 1100);
+    })
+  );
+}
+
+el.startJourney.addEventListener("click", () => {
+  Sound.click();
+  startCutscene();
+});
+
+function startCutscene() {
+  state.stage = "end";
+  saveState();
+
+  // everything UI fades away, only scenery stays
+  el.ticketStage.classList.add("fade-out");
+  hideMainUi();
+
+  setTimeout(() => {
+    el.ticketStage.classList.add("hidden");
+    Sound.takeoff();
+
+    // plane rolls down the runway then lifts off and flies out of the screen
+    el.plane.classList.add("no-idle");
+    const anim = el.plane.animate(
+      [
+        { transform: "translate(0px, 0px) rotate(0deg)", easing: "cubic-bezier(0.5, 0, 0.9, 0.4)" },
+        { transform: "translate(190px, -2px) rotate(-2deg)", offset: 0.42, easing: "cubic-bezier(0.4, 0, 0.6, 0.5)" },
+        { transform: "translate(330px, -40px) rotate(-14deg)", offset: 0.62, easing: "cubic-bezier(0.3, 0, 0.5, 1)" },
+        { transform: `translate(${window.innerWidth * 0.75}px, -${window.innerHeight * 0.75}px) rotate(-24deg) scale(1.05)` },
+      ],
+      { duration: 4600, fill: "forwards" }
+    );
+
+    anim.onfinish = () => {
+      el.plane.style.visibility = "hidden";
+      showEndScreen();
+    };
+  }, 800);
+}
+
+function showEndScreen() {
+  el.endOverlay.classList.remove("hidden");
+  Sound.tada();
+  const lines = el.endOverlay.querySelectorAll(".end-line");
+  lines.forEach((line, i) => {
+    setTimeout(() => line.classList.add("show"), 500 + i * 1100);
+  });
+}
+
+el.btnAgain.addEventListener("click", () => {
+  Sound.click();
+  localStorage.removeItem(SAVE_KEY);
+  location.reload();
+});
+
+/* ------------------------------------------------------------
+   Restore progress on load
+   ------------------------------------------------------------ */
+
+function restore() {
+  loadState();
+  renderStats();
+  renderLetterClaim();
+
+  if (state.stage === "ticket") {
+    hideMainUi();
+    buildQr();
+    el.ticketStage.classList.remove("hidden");
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        el.ticket.classList.add("landed");
+        setTimeout(() => el.startJourney.classList.remove("hidden"), 900);
+      })
+    );
+  } else if (state.stage === "end") {
+    hideMainUi();
+    el.ticketStage.classList.add("hidden");
+    el.plane.style.visibility = "hidden";
+    showEndScreen();
+  }
+}
+
+restore();
+scheduleFlyers();
