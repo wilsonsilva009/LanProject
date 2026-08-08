@@ -1,4 +1,4 @@
-# For my love 💙
+# For my love ❤️
 
 A little cartoon-sky gift game. Earn coins with sweet words, read the love
 letter, buy your way through the story in the shop, and finally… fly
