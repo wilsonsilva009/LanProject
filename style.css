@@ -118,11 +118,31 @@ body.phase-evening #tint-evening { opacity: 1; }
 body.phase-dusk    #tint-dusk    { opacity: 1; }
 body.phase-night   #tint-night   { opacity: 1; }
 
-/* scenery dims at night */
-#ground, #airport { transition: filter 8s ease; }
-body.phase-evening #ground, body.phase-evening #airport { filter: brightness(0.93) saturate(1.05); }
-body.phase-dusk #ground,    body.phase-dusk #airport    { filter: brightness(0.78) saturate(0.85); }
-body.phase-night #ground,   body.phase-night #airport   { filter: brightness(0.55) saturate(0.7); }
+/* scenery dims at night. The airport is dimmed PER ELEMENT (not via a
+   container filter or overlay): a container filter would dim the lights'
+   glow too — bright colors clamp at white before the dim — so every
+   light element lives outside the dimmed pieces and keeps full brightness. */
+#ground { transition: filter 8s ease; }
+body.phase-evening #ground { filter: brightness(0.93) saturate(1.05); }
+body.phase-dusk #ground    { filter: brightness(0.78) saturate(0.85); }
+body.phase-night #ground   { filter: brightness(0.55) saturate(0.7); }
+
+.runway, .terminal, .hangar, .airport-fence, .airport-sign, .dep-sign,
+.windsock, .luggage-cart, .radio-mast, .tower-pole, .tower-radar, #plane svg {
+  transition: filter 8s ease;
+}
+body.phase-evening :is(.runway, .terminal, .hangar, .airport-fence, .airport-sign,
+.dep-sign, .windsock, .luggage-cart, .radio-mast, .tower-pole, .tower-radar, #plane svg) {
+  filter: brightness(0.93) saturate(1.05);
+}
+body.phase-dusk :is(.runway, .terminal, .hangar, .airport-fence, .airport-sign,
+.dep-sign, .windsock, .luggage-cart, .radio-mast, .tower-pole, .tower-radar, #plane svg) {
+  filter: brightness(0.78) saturate(0.85);
+}
+body.phase-night :is(.runway, .terminal, .hangar, .airport-fence, .airport-sign,
+.dep-sign, .windsock, .luggage-cart, .radio-mast, .tower-pole, .tower-radar, #plane svg) {
+  filter: brightness(0.55) saturate(0.7);
+}
 
 /* at night flyers rise above the tint (clouds are gone) and dim,
    so their navigation lights can shine */
@@ -381,7 +401,7 @@ body.phase-dusk .cloud-track { opacity: 0.5; }
   background: linear-gradient(180deg, #8a93a6, #6d7789);
   border-radius: 10px;
   border: 3px solid #5a6375;
-  overflow: hidden;
+  /* no overflow:hidden — it would clip the night glow of the edge lights */
 }
 .runway-stripes {
   position: absolute;
@@ -393,21 +413,23 @@ body.phase-dusk .cloud-track { opacity: 0.5; }
   border-radius: 2px;
   opacity: 0.9;
 }
+/* runway furniture lives OUTSIDE .runway so night dimming of the slab
+   never dims the lights */
 .runway-threshold {
   position: absolute;
-  top: 5px;
-  bottom: 5px;
+  bottom: 19px;
+  height: 36px;
   width: 22px;
   background: repeating-linear-gradient(180deg, #fff 0 4px, transparent 4px 9px);
   opacity: 0.85;
 }
 .th-left { left: 6px; }
-.th-right { right: 6px; }
+.th-right { left: 512px; }
 .runway-number {
   position: absolute;
   left: 36px;
-  top: 50%;
-  transform: translateY(-50%) rotate(90deg);
+  bottom: 27px;
+  transform: rotate(90deg);
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 1.05rem;
@@ -416,13 +438,14 @@ body.phase-dusk .cloud-track { opacity: 0.5; }
 }
 .runway-lights {
   position: absolute;
-  left: 10px; right: 10px;
+  left: 10px;
+  width: 520px;
   height: 5px;
   background: repeating-linear-gradient(90deg, #ffe28a 0 5px, transparent 5px 42px);
   animation: runway-glow 1.4s ease-in-out infinite alternate;
 }
-.lights-top { top: 1px; }
-.lights-bottom { bottom: 1px; animation-delay: -0.7s; }
+.lights-top { bottom: 54px; }
+.lights-bottom { bottom: 15px; animation-delay: -0.7s; }
 @keyframes runway-glow { from { opacity: 0.5; } to { opacity: 1; } }
 
 .windsock {
@@ -579,9 +602,9 @@ body.phase-dusk .cloud-track { opacity: 0.5; }
 }
 .terminal-windows {
   position: absolute;
-  top: 8px;
-  left: 8px;
-  right: 8px;
+  left: 10px;
+  bottom: 86px;
+  width: 88px;
   height: 20px;
   background: repeating-linear-gradient(90deg, #9bd1ff 0 14px, transparent 14px 20px);
   border-radius: 4px;
@@ -665,9 +688,8 @@ body.phase-dusk .cloud-track { opacity: 0.5; }
 }
 .mast-light {
   position: absolute;
-  top: -8px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 587px;
+  bottom: 147px;
   width: 9px;
   height: 9px;
   background: #ff5f5f;
@@ -705,7 +727,7 @@ body.phase-dusk .cloud-track { opacity: 0.5; }
 #plane {
   position: absolute;
   left: 60px;
-  bottom: 54px;
+  bottom: 16px;
   width: 140px;
   pointer-events: none;
   animation: plane-idle 3s ease-in-out infinite alternate;
@@ -721,8 +743,8 @@ body.phase-dusk .cloud-track { opacity: 0.5; }
 /* thought bubble over the parked plane */
 #plane-thought {
   position: absolute;
-  left: 196px;
-  bottom: 142px;
+  left: 202px;
+  bottom: 98px;
   background: #fff;
   border: 3px solid var(--ink);
   border-radius: 18px;

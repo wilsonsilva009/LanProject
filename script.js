@@ -967,7 +967,9 @@ function spawnFlyer(forceKind) {
   f.style.left = "0px";
   const svg = f.querySelector("svg");
   svg.style.width = size + "px";
-  if (!goingRight) svg.style.transform = "scaleX(-1)"; // flip the plane only, not the banner text
+  // flip the whole plane body (svg + nav lights) but never the banner text
+  const wrap = f.querySelector(".plane-body");
+  if (!goingRight) (wrap || svg).style.transform = "scaleX(-1)";
   el.flyers.appendChild(f);
 
   if (kind === "golden") {
@@ -1030,7 +1032,26 @@ function showThought() {
   document.getElementById("thought-text").textContent =
     THOUGHTS[Math.floor(Math.random() * THOUGHTS.length)];
   bubble.classList.add("show");
-  setTimeout(() => bubble.classList.remove("show"), 3800);
+  // WAAPI with an explicit startTime starts even when no frame is pending
+  const pop = bubble.animate(
+    [
+      { opacity: 0, transform: "scale(0.3) translateY(16px)" },
+      { opacity: 1, transform: "scale(1) translateY(0)" },
+    ],
+    { duration: 450, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)", fill: "forwards" }
+  );
+  pop.startTime = document.timeline.currentTime;
+  setTimeout(() => {
+    const out = bubble.animate(
+      [
+        { opacity: 1, transform: "scale(1) translateY(0)" },
+        { opacity: 0, transform: "scale(0.5) translateY(12px)" },
+      ],
+      { duration: 400, easing: "ease-in", fill: "forwards" }
+    );
+    out.startTime = document.timeline.currentTime;
+    out.onfinish = () => bubble.classList.remove("show");
+  }, 3800);
 }
 window.__showThought = showThought; // used by the automated tests
 
