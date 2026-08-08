@@ -53,6 +53,10 @@
     <div class="bldg b6"></div>
     <div class="bldg b7"></div>
     <div class="bldg b8"></div>
+    <div class="bldg b9"></div>
+    <div class="bldg b10"></div>
+    <div class="bldg b11"></div>
+    <div class="bldg b12"></div>
     <div class="city-antenna"><div class="city-antenna-tip"></div></div>
   </div>
 
@@ -116,6 +120,13 @@
     <div id="plane">
       <svg viewBox="0 0 150 74" xmlns="http://www.w3.org/2000/svg">
         <!-- cartoon jet, side view, facing right -->
+        <defs>
+          <radialGradient id="winglow">
+            <stop offset="0%" stop-color="#ffedb0" stop-opacity="0.95"/>
+            <stop offset="55%" stop-color="#ffe49a" stop-opacity="0.45"/>
+            <stop offset="100%" stop-color="#ffe49a" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
         <!-- tail fin -->
         <path d="M 26 34 Q 22 16 34 8 Q 44 14 46 26 L 48 36 Z" fill="#ff8fa3" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
         <!-- rear stabilizer -->
@@ -126,6 +137,11 @@
         <path d="M 27 45 Q 60 51 110 50 Q 130 48 139 41 Q 132 49 102 52 L 48 52 Q 30 50 27 45 Z" fill="#9bd1ff"/>
         <!-- cockpit windshield -->
         <path d="M 124 30 Q 134 32 138 37 Q 130 36 122 35 Q 121 32 124 30 Z" fill="#3b4a6b"/>
+        <!-- window glows (visible at night) -->
+        <circle class="win-glow" cx="98" cy="35" r="12" fill="url(#winglow)"/>
+        <circle class="win-glow" cx="82" cy="35" r="12" fill="url(#winglow)"/>
+        <circle class="win-glow" cx="66" cy="35" r="12" fill="url(#winglow)"/>
+        <circle class="win-glow" cx="50" cy="35" r="12" fill="url(#winglow)"/>
         <!-- windows -->
         <circle cx="98" cy="35" r="4.4" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
         <circle cx="82" cy="35" r="4.4" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
@@ -284,7 +300,8 @@
   <!-- flying coins / hearts land here -->
   <div id="fx-layer"></div>
 
-  <!-- background music -->
+  <!-- background music + data controls -->
+  <button id="clear-data" title="Clear all data and start over">🗑️</button>
   <button id="music-toggle" title="Music on/off">🔊</button>
   <audio id="music-a" src="assets/music.mp3" preload="auto"></audio>
   <audio id="music-b" src="assets/musicelectro.mp3" preload="auto"></audio>

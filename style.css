@@ -128,37 +128,53 @@ body.phase-dusk #ground    { filter: brightness(0.78) saturate(0.85); }
 body.phase-night #ground   { filter: brightness(0.55) saturate(0.7); }
 
 .runway, .terminal, .hangar, .airport-fence, .airport-sign, .dep-sign, .windsock,
-.luggage-cart, .radio-mast, .tower-pole, .tower-radar, .atc-pole, .atc-roof, #plane svg {
+.luggage-cart, .radio-mast, .tower-pole, .tower-radar, .atc-pole, .atc-roof {
   transition: filter 8s ease;
 }
 body.phase-evening :is(.runway, .terminal, .hangar, .airport-fence, .airport-sign, .dep-sign,
-.windsock, .luggage-cart, .radio-mast, .tower-pole, .tower-radar, .atc-pole, .atc-roof, #plane svg) {
+.windsock, .luggage-cart, .radio-mast, .tower-pole, .tower-radar, .atc-pole, .atc-roof) {
   filter: brightness(0.93) saturate(1.05);
 }
 body.phase-dusk :is(.runway, .terminal, .hangar, .airport-fence, .airport-sign, .dep-sign,
-.windsock, .luggage-cart, .radio-mast, .tower-pole, .tower-radar, .atc-pole, .atc-roof, #plane svg) {
+.windsock, .luggage-cart, .radio-mast, .tower-pole, .tower-radar, .atc-pole, .atc-roof) {
   filter: brightness(0.78) saturate(0.85);
 }
 body.phase-night :is(.runway, .terminal, .hangar, .airport-fence, .airport-sign, .dep-sign,
-.windsock, .luggage-cart, .radio-mast, .tower-pole, .tower-radar, .atc-pole, .atc-roof, #plane svg) {
+.windsock, .luggage-cart, .radio-mast, .tower-pole, .tower-radar, .atc-pole, .atc-roof) {
   filter: brightness(0.55) saturate(0.7);
 }
 
-/* plane windows light up and glow at night (both parked and flying) */
+/* plane sprites dim per PART at night, so the lit windows and their glow
+   discs keep full brightness (a filter on the whole svg would flatten them) */
+:is(#plane, .flyer) svg :is(path, ellipse, line, circle) { transition: filter 8s ease; }
+body.phase-evening :is(#plane, .flyer:not(.golden)) svg
+  :is(path, ellipse, line, circle:not([fill="#bfe6ff"]):not(.win-glow)) {
+  filter: brightness(0.93) saturate(1.05);
+}
+body.phase-dusk :is(#plane, .flyer:not(.golden)) svg
+  :is(path, ellipse, line, circle:not([fill="#bfe6ff"]):not(.win-glow)) {
+  filter: brightness(0.78) saturate(0.85);
+}
+body.phase-night :is(#plane, .flyer:not(.golden)) svg
+  :is(path, ellipse, line, circle:not([fill="#bfe6ff"]):not(.win-glow)) {
+  filter: brightness(0.6) saturate(0.75);
+}
+
+/* plane windows light up at night; the glow is drawn INSIDE the svg as a
+   radial-gradient disc behind each window (a CSS drop-shadow on tiny svg
+   circles gets clipped to their filter region and never shows) */
 .flyer svg circle[fill="#bfe6ff"], #plane svg circle[fill="#bfe6ff"] {
-  transition: fill 8s ease, filter 8s ease;
+  transition: fill 8s ease;
 }
 body.phase-night :is(.flyer svg, #plane svg) circle[fill="#bfe6ff"] {
   fill: #fff0bd;
-  filter: drop-shadow(0 0 2.5px #ffe9a8) drop-shadow(0 0 6px rgba(255, 220, 140, 0.9));
 }
-/* soften the night dim on plane sprites so the lit windows read through */
-body.phase-night #plane svg { filter: brightness(0.65) saturate(0.8); }
+.win-glow { opacity: 0; transition: opacity 8s ease; }
+body.phase-night .win-glow { opacity: 1; }
 
 /* at night flyers rise above the tint (clouds are gone) and dim,
    so their navigation lights can shine */
 body.phase-night #flyers { z-index: 2; }
-body.phase-night .flyer svg { filter: brightness(0.62) saturate(0.8); }
 body.phase-night .flyer-banner { filter: brightness(0.62); }
 
 /* aircraft navigation lights — red + green strobes, night only */
@@ -403,6 +419,11 @@ body.phase-dusk .cloud-track { opacity: 0.5; }
 .b6 { left: 258px; width: 38px; height: 118px; background-color: #93a6cc; }
 .b7 { left: 300px; width: 60px; height: 82px;  background-color: #b0bfe0; }
 .b8 { left: 364px; width: 44px; height: 106px; background-color: #9cadd2; }
+/* western extension of the skyline */
+.b9  { left: -178px; width: 42px; height: 94px;  background-color: #a2b1d6; }
+.b10 { left: -132px; width: 52px; height: 70px;  background-color: #b4c2e2; }
+.b11 { left: -76px;  width: 40px; height: 118px; background-color: #90a3ca; }
+.b12 { left: -32px;  width: 46px; height: 86px;  background-color: #aab9dc; }
 .city-antenna {
   position: absolute;
   left: 170px;
@@ -1622,9 +1643,8 @@ body.love-on .card-icon .earn-heart { width: 44px; }
    MUSIC TOGGLE + RISING HEARTS
    ============================================================ */
 
-#music-toggle {
+#music-toggle, #clear-data {
   position: fixed;
-  right: 20px;
   bottom: 20px;
   z-index: 60;
   width: 46px;
@@ -1635,10 +1655,21 @@ body.love-on .card-icon .earn-heart { width: 44px; }
   font-size: 1.15rem;
   cursor: pointer;
   box-shadow: var(--shadow-soft);
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.25s ease;
 }
-#music-toggle:hover { transform: scale(1.12) rotate(-6deg); }
+#music-toggle { right: 20px; }
+#clear-data { right: 76px; }
+#music-toggle:hover, #clear-data:hover { transform: scale(1.12) rotate(-6deg); }
 #music-toggle.muted { filter: grayscale(1) opacity(0.7); }
+#clear-data.armed {
+  background: #ffd9d9;
+  border-color: rgba(220, 80, 80, 0.5);
+  animation: clear-wiggle 0.4s ease-in-out infinite alternate;
+}
+@keyframes clear-wiggle {
+  from { transform: rotate(-5deg) scale(1.06); }
+  to   { transform: rotate(5deg) scale(1.06); }
+}
 
 #rising-hearts {
   position: fixed;

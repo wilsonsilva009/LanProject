@@ -924,6 +924,9 @@ const PLANE_SVG = `
     <path d="M 22 40 Q 22 28 48 26 L 102 25 Q 132 26 143 38 Q 134 50 102 52 L 48 52 Q 22 50 22 40 Z" fill="#ffffff" stroke="#3b4a6b" stroke-width="3" stroke-linejoin="round"/>
     <path d="M 27 45 Q 60 51 110 50 Q 130 48 139 41 Q 132 49 102 52 L 48 52 Q 30 50 27 45 Z" fill="#ffb8c8"/>
     <path d="M 124 30 Q 134 32 138 37 Q 130 36 122 35 Q 121 32 124 30 Z" fill="#3b4a6b"/>
+    <circle class="win-glow" cx="96" cy="35" r="12" fill="url(#winglow)"/>
+    <circle class="win-glow" cx="79" cy="35" r="12" fill="url(#winglow)"/>
+    <circle class="win-glow" cx="62" cy="35" r="12" fill="url(#winglow)"/>
     <circle cx="96" cy="35" r="4.4" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
     <circle cx="79" cy="35" r="4.4" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
     <circle cx="62" cy="35" r="4.4" fill="#bfe6ff" stroke="#3b4a6b" stroke-width="2.5"/>
@@ -1206,6 +1209,32 @@ el.btnAgain.addEventListener("click", () => {
   Sound.click();
   localStorage.removeItem(SAVE_KEY);
   location.reload();
+});
+
+/* Clear-data button: first click arms it, second click (within 3s) wipes */
+const clearBtn = document.getElementById("clear-data");
+let clearArmed = false;
+let clearTimer = null;
+
+clearBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  Sound.click();
+  if (!clearArmed) {
+    clearArmed = true;
+    clearBtn.classList.add("armed");
+    clearBtn.textContent = "❗";
+    clearBtn.title = "Click again to erase everything";
+    clearTimer = setTimeout(() => {
+      clearArmed = false;
+      clearBtn.classList.remove("armed");
+      clearBtn.textContent = "🗑️";
+      clearBtn.title = "Clear all data and start over";
+    }, 3000);
+  } else {
+    clearTimeout(clearTimer);
+    localStorage.removeItem(SAVE_KEY);
+    location.reload();
+  }
 });
 
 /* ------------------------------------------------------------
